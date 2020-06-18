@@ -1,0 +1,29 @@
+(ns trader1.bitfinex
+    (:require [clj-http.client :as client]))
+
+(def base-url-bitfinex "https://api.bitfinex.com/v1/")
+
+
+(defn request-symbols-bitfinex
+  "Symbols are the allowed trading-pairs."
+  []
+  (def resp (client/get
+             (str base-url-bitfinex "symbols")
+             {:as :json}))
+  (get resp :body))
+  
+
+(defn request-course-bitfinex
+  ""
+  [course]
+  (def resp (client/get
+             (str base-url-bitfinex "pubticker/" course)
+             {:as :json}))
+  (get resp :body))
+
+
+(defn get-btc-usd-bitfinex
+  "receive the btc usd cource from bitfinex"
+  []
+  (def btc-course (request-course-bitfinex "btcusd"))
+  (print btc-course))

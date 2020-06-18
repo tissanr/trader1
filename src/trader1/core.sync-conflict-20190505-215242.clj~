@@ -1,0 +1,41 @@
+(ns trader1.core
+  (:require [clj-http.client :as client])
+  (:require [clojure.string :as str])
+  (:require trader1.security)
+  (:require [cheshire.core :refer :all])
+  (:gen-class))
+
+
+(defn -main
+  "i do nothin' yet"
+  [& args])
+
+
+(defn get-path
+  "request someting http"
+  [url path]
+  (client/get (str url path)
+              {:as :json}))
+
+
+(defn post-path
+  [url path body]
+  (client/post (str url path)
+               {:body (generate-string body)}))
+
+
+  
+(defn throw-if-err
+  [reply]
+  (when (not (empty? (get reply :error)))
+    (throw (Exception. "Error happened while "))))
+
+
+
+  
+;; just to find out how to call java methods
+(defn get-number-of-threads
+  "return the number of threads the system can handle in parrallel"
+  []
+  (.availableProcessors (Runtime/getRuntime)))
+
