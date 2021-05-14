@@ -1,36 +1,18 @@
 # trader1
 
-FIXME: description
+learning Clojure access kraken exchange and do some stuff
 
 ## Installation
 
-Download from http://example.com/FIXME.
-
-## Usage
-
-FIXME: explanation
-
-    $ java -jar trader1-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
+feel free to fork and run in repl
 
 ### Bugs
 
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
+this thing is one biiig bug!
 
 ## License
 
-Copyright © 2018 FIXME
+Copyright © 2018 Stephan Reiter
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.

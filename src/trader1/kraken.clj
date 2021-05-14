@@ -50,7 +50,6 @@
     (core/throw-if-err reply)
     (get reply :result)))
 
-#_(:XXBTZEUR (request-symbol-pairs))
 
 (defn- decode-base64 [x]
   (.decode (Base64/getDecoder) x))

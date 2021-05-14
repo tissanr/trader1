@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="6fb58543-85aa-4dd2-8084-a5bd80f4ac63" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/trader1/kraken.clj" beforeDir="false" afterPath="$PROJECT_DIR$/src/trader1/kraken.clj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trader1.iml" beforeDir="false" afterPath="$PROJECT_DIR$/trader1.iml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DepsLocalSettings">
+    <option name="repoId" value="" />
+    <option name="repoUrl" value="" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Clojure Test Namespace" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="1dBiXzUmgbE1aXm0kMRKN8MVNvH" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="GoToKeyword.includeLibraries" value="false" />
+    <property name="GoToNamespace.includeLibraries" value="false" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="project.structure.last.edited" value="Modules" />
+    <property name="project.structure.proportion" value="0.0" />
+    <property name="project.structure.side.proportion" value="0.35647058" />
+    <property name="settings.editor.selected.configurable" value="Leiningen" />
+  </component>
+  <component name="ReplState" timestamp="1592515432662">{:repl-history {:ide [], :local [{:command &quot;(deftest request-symbol-pairs-test\n  (let [symbols (request-symbols)] (contins?  symbols :XXBT)))&quot;, :offset 97, :ns &quot;trader1.kraken-test&quot;} {:command &quot;(deftest request-symbols-test\n  (let [s-time (request-server-time)]\n    (contains? s-time :body)))&quot;, :offset 98, :ns &quot;trader1.kraken-test&quot;} {:command &quot;(deftest request-symbol-pairs-test\n  (let [symbols (request-symbols)] (contains?  symbols :XXBT)))&quot;, :offset 98, :ns &quot;trader1.kraken-test&quot;} {:command &quot;(defn request-ticker\n  \&quot;requests ticker for certain vector of assetpairs\&quot;\n  [asset-pairs]\n  (let [path (str base-url (:ticker method))]\n    (let [nonce (get-nonce)]\n      (let [post-data (json/generate-string {:pair  [\&quot;XBTUSD\&quot;]\n                                             :nonce nonce})]\n        (let [header (get-header path nonce post-data)]\n          (println path)\n          (println post-data)\n          (println header)\n          (let [reply (:body (core/post-path path\n                                             post-data\n                                             header))]\n            (core/throw-if-err reply)\n            (get reply :result)))))))&quot;, :offset 662, :ns &quot;trader1.kraken&quot;} {:command &quot;(defn request-symbols\n  \&quot;Returns a List of all the assets &lt;asset_name&gt; = asset name\n    altname = alternate name\n    aclass = asset class\n    decimals = scaling decimal places for record keeping\n    display_decimals = scaling decimal places for output display\&quot;\n  []\n  (let [reply (:body (core/get-path base-url \&quot;Assets\&quot;))]\n    (core/throw-if-err reply)\n    (:result reply)))&quot;, :offset 374, :ns &quot;trader1.kraken&quot;} {:command &quot;(request-symbols)&quot;, :offset 17, :ns &quot;trader1.kraken&quot;} {:command &quot;(:XXBT (request-symbols)) &quot;, :offset 25, :ns &quot;trader1.kraken&quot;} {:command &quot;(defn request-symbol-pairs\n  \&quot;they call them tradable asset pairs\&quot;\n  []\n  (let [reply (:body (core/get-path base-url \&quot;AssetPairs\&quot;))]\n    (core/throw-if-err reply)\n    (get reply :result)))&quot;, :offset 188, :ns &quot;trader1.kraken&quot;} {:command &quot;(:XXBTZEUR (request-symbol-pairs)) &quot;, :offset 34, :ns &quot;trader1.kraken&quot;} {:command &quot;(defn- get-nonce []\n  (tc/to-long (time/now)))&quot;, :offset 46, :ns &quot;trader1.kraken&quot;} {:command &quot;(defn request-advancers\n  \&quot;get the advancers of NYSE\&quot;\n  []\n  (core/get-csv base-url \&quot;NYSE_advn.csv\&quot;))&quot;, :offset 101, :ns &quot;trader1.unicorn&quot;} {:command &quot;(defn request-advancers\n  \&quot;get the advancers of NYSE\&quot;\n  []\n  (let [response (core/get-csv base-url \&quot;NYSE_advn.csv\&quot;)]\n    (if (= (:status response) 200)\n      (:body response)\n      [])))&quot;, :offset 186, :ns &quot;trader1.unicorn&quot;} {:command &quot;(request-advancers)&quot;, :offset 19, :ns &quot;trader1.unicorn&quot;}], :remote []}}</component>
+  <component name="RunManager" selected="Clojure REPL.local repl">
+    <configuration default="true" type="ClojureREPL" factoryName="Local" activateToolWindowBeforeRun="false">
+      <setting name="replType" value="NREPL" />
+      <setting name="execution" value="LEININGEN" />
+      <setting name="jvmArgs" value="" />
+      <setting name="parameters" value="" />
+      <setting name="workingDir" value="" />
+      <setting name="profiles" value="" />
+      <setting name="aliases" value="" />
+      <setting name="fixLineNumbers" value="false" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="ClojureREPL" factoryName="Remote" activateToolWindowBeforeRun="false">
+      <setting name="host" value="" />
+      <setting name="port" value="0" />
+      <setting name="replType" value="SOCKET" />
+      <setting name="configType" value="SPECIFY" />
+      <setting name="fixLineNumbers" value="false" />
+      <method v="2" />
+    </configuration>
+    <configuration name="local repl" type="ClojureREPL" factoryName="Local" activateToolWindowBeforeRun="false">
+      <module name="trader1" />
+      <setting name="replType" value="NREPL" />
+      <setting name="execution" value="LEININGEN" />
+      <setting name="jvmArgs" value="" />
+      <setting name="parameters" value="" />
+      <setting name="workingDir" value="$PROJECT_DIR$" />
+      <setting name="profiles" value="" />
+      <setting name="aliases" value="" />
+      <setting name="fixLineNumbers" value="false" />
+      <method v="2" />
+    </configuration>
+    <configuration name="kraken_test" type="ClojureScriptRunConfiguration" factoryName="Clojure Script" temporary="true">
+      <module name="trader1" />
+      <setting name="path" value="$PROJECT_DIR$/test/trader1/kraken_test.clj" />
+      <setting name="namespace" value="" />
+      <setting name="execution" value="INTELLIJ" />
+      <setting name="profiles" value="" />
+      <setting name="aliases" value="" />
+      <setting name="vmparams" value="" />
+      <setting name="params" value="" />
+      <setting name="workDir" value="$PROJECT_DIR$/test/trader1" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Clojure Application.kraken_test" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="6fb58543-85aa-4dd2-8084-a5bd80f4ac63" name="Default Changelist" comment="" />
+      <created>1591904930636</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1591904930636</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="398" y="92" width="800" height="728" key="#Plugins" timestamp="1592859910642">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state x="398" y="92" width="800" height="728" key="#Plugins/0.27.1600.872@0.27.1600.872" timestamp="1592859910642" />
+    <state x="262" y="106" width="1076" height="781" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1592514312871">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state x="262" y="106" width="1076" height="781" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.27.1600.872@0.27.1600.872" timestamp="1592514312871" />
+    <state x="440" y="18" width="729" height="881" key="#trader1.kraken" timestamp="1592512942780">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state x="440" y="18" width="729" height="881" key="#trader1.kraken/0.27.1600.872@0.27.1600.872" timestamp="1592512942780" />
+    <state x="585" y="171" width="424" height="529" key="FileChooserDialogImpl" timestamp="1592859925045">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state x="585" y="171" width="424" height="529" key="FileChooserDialogImpl/0.27.1600.872@0.27.1600.872" timestamp="1592859925045" />
+    <state width="1554" height="207" key="GridCell.Tab.0.bottom" timestamp="1592515432029">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state width="1554" height="207" key="GridCell.Tab.0.bottom/0.27.1600.872@0.27.1600.872" timestamp="1592515432029" />
+    <state width="1554" height="207" key="GridCell.Tab.0.center" timestamp="1592515432029">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state width="1554" height="207" key="GridCell.Tab.0.center/0.27.1600.872@0.27.1600.872" timestamp="1592515432029" />
+    <state width="1554" height="207" key="GridCell.Tab.0.left" timestamp="1592515432028">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state width="1554" height="207" key="GridCell.Tab.0.left/0.27.1600.872@0.27.1600.872" timestamp="1592515432028" />
+    <state width="1554" height="207" key="GridCell.Tab.0.right" timestamp="1592515432029">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state width="1554" height="207" key="GridCell.Tab.0.right/0.27.1600.872@0.27.1600.872" timestamp="1592515432029" />
+    <state x="245" y="84" width="1314" height="781" key="IDE.errors.dialog" timestamp="1592513579088">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state x="245" y="84" width="1314" height="781" key="IDE.errors.dialog/0.27.1600.872@0.27.1600.872" timestamp="1592513579088" />
+    <state x="0" y="18" width="1591" height="867" key="MergeDialog" timestamp="1592517545714">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state x="0" y="18" width="1591" height="867" key="MergeDialog/0.27.1600.872@0.27.1600.872" timestamp="1592517545714" />
+    <state x="439" y="220" width="718" height="491" key="MultipleFileMergeDialog" timestamp="1592517545735">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state x="439" y="220" width="718" height="491" key="MultipleFileMergeDialog/0.27.1600.872@0.27.1600.872" timestamp="1592517545735" />
+    <state x="299" y="18" width="1001" height="746" key="SettingsEditor" timestamp="1592512905699">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state x="299" y="18" width="1001" height="746" key="SettingsEditor/0.27.1600.872@0.27.1600.872" timestamp="1592512905699" />
+    <state x="398" y="193" width="800" height="544" key="Vcs.Push.Dialog.v2" timestamp="1592516580148">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state x="398" y="193" width="800" height="544" key="Vcs.Push.Dialog.v2/0.27.1600.872@0.27.1600.872" timestamp="1592516580148" />
+    <state x="436" y="207" width="761" height="678" key="search.everywhere.popup" timestamp="1591908347926">
+      <screen x="0" y="27" width="1600" height="872" />
+    </state>
+    <state x="436" y="207" width="761" height="678" key="search.everywhere.popup/0.27.1600.872@0.27.1600.872" timestamp="1591908347926" />
+  </component>
+</project>
