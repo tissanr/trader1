@@ -1,0 +1,2229 @@
+; This is the Calva evaluation results output window.
+; TIPS: The keyboard shortcut `ctrl+alt+o o` shows and focuses this window
+;   when connected to a REPL session.
+; Please see https://calva.io/output/ for more info.
+; Happy coding! ♥️
+
+; Jacking in...
+; Connecting using "Leiningen" project type.
+; You can make Calva auto-select this.
+;   - See https://calva.io/connect-sequences/
+; 
+; Starting Jack-in Terminal: pushd /home/sr/syncthing/dev/clojure/trader1 ; lein update-in :dependencies conj '[nrepl,"1.0.0"]' -- update-in :plugins conj '[cider/cider-nrepl,"0.28.5"]' -- update-in '[:repl-options,:nrepl-middleware]' conj '["cider.nrepl/cider-middleware"]' -- with-profile +uberjar repl :headless ; popd
+; Jacking in...
+; Connecting using "Leiningen" project type.
+; You can make Calva auto-select this.
+;   - See https://calva.io/connect-sequences/
+; 
+; Starting Jack-in Terminal: pushd /home/sr/syncthing/dev/clojure/trader1 ; lein update-in :dependencies conj '[nrepl,"1.0.0"]' -- update-in :plugins conj '[cider/cider-nrepl,"0.28.5"]' -- update-in '[:repl-options,:nrepl-middleware]' conj '["cider.nrepl/cider-middleware"]' -- repl :headless ; popd
+; Using host:port 127.0.0.1:33975 ...
+; Hooking up nREPL sessions ...
+; Connected session: clj
+; TIPS:
+;   - You can edit the contents here. Use it as a REPL if you like.
+;   - `alt+enter` evaluates the current top level form.
+;   - `ctrl+enter` evaluates the current form.
+;   - `alt+up` and `alt+down` traverse up and down the REPL command history
+;      when the cursor is after the last contents at the prompt
+;   - Clojure lines in stack traces are peekable and clickable.
+; Evaluating code from settings: 'calva.autoEvaluateCode.onConnect.clj'
+nil
+clj꞉trader1.core꞉>  ; Use `alt+enter` to evaluate
+clj꞉trader1.core꞉> 
+; Jack-in done.
+clj꞉trader1.core꞉> 
+#'trader1.kraken/base-url
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/version
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/public
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/private
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/method
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/private-method
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/k-header
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/k-header
+clj꞉trader1.kraken꞉> 
+{:User-Agent "kraken-clj/v0.1"}
+clj꞉trader1.kraken꞉> 
+; Syntax error compiling at (kraken.clj:29:1).
+; Unable to resolve symbol: defn in this context
+clj꞉trader1.kraken꞉> 
+; Syntax error compiling at (kraken.clj:29:1).
+; Unable to resolve symbol: defn in this context
+clj꞉trader1.kraken꞉> 
+nil
+clj꞉trader1.kraken꞉> 
+nil
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/request-server-time
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/request-server-time
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/request-server-time
+clj꞉trader1.kraken꞉> 
+{:cached nil,
+ :request-time 567,
+ :repeatable? false,
+ :protocol-version {:name "HTTP", :major 1, :minor 1},
+ :streaming? true,
+ :http-client
+ #object[org.apache.http.impl.client.InternalHttpClient 0x40f5a033 "org.apache.http.impl.client.InternalHttpClient@40f5a033"],
+ :chunked? true,
+ :cookies
+ {"__cf_bm"
+  {:discard false,
+   :domain "kraken.com",
+   :expires #inst "2023-06-20T09:18:44.000-00:00",
+   :path "/",
+   :secure true,
+   :value
+   "CTw6wNFJNSRRZD2JDcmnXH7u1ZhTvziGvW.MU3LPURM-1687250924-0-AZL7sJM0+UyCOuxaLCeyjA808YKlltP3gYcnk6ppGm0lVQ9kfr5TIEevGsyTWO3ZwmSjmCLgFmVHvuURSacDF5k=",
+   :version 0},
+  "__cfruid"
+  {:discard true,
+   :domain "kraken.com",
+   :path "/",
+   :secure true,
+   :value "2c481d098b6e69ca603ac1ecb826e227a9fdba54-1687250924",
+   :version 0}},
+ :reason-phrase "OK",
+ :headers
+ {"Referrer-Policy" "strict-origin-when-cross-origin",
+  "Server" "cloudflare",
+  "Content-Type" "application/json",
+  "X-Content-Type-Options" "nosniff",
+  "strict-transport-security" "max-age=31536000; includeSubDomains; preload",
+  "Connection" "close",
+  "Transfer-Encoding" "chunked",
+  "x-proxy" "gateway",
+  "CF-Cache-Status" "MISS",
+  "CF-RAY" "7da2c1233eb5452e-TXL",
+  "Date" "Tue, 20 Jun 2023 08:48:44 GMT",
+  "Vary" "Accept-Encoding",
+  "Last-Modified" "Tue, 20 Jun 2023 08:48:44 GMT",
+  "x-trace-id" "0a5010160188d7fdf27700205a7b5f18",
+  "cache-control" "no-cache, max-age=0"},
+ :orig-content-encoding nil,
+ :status 200,
+ :length -1,
+ :body {:error [], :result {:unixtime 1687250924, :rfc1123 "Tue, 20 Jun 23 08:48:44 +0000"}},
+ :trace-redirects []}
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/request-symbols
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/request-symbols
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/request-symbols
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/request-symbols
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/request-symbols
+clj꞉trader1.kraken꞉> 
+{:FTM {:aclass "currency", :altname "FTM", :decimals 8, :display_decimals 5, :status "enabled"},
+ :POWR {:aclass "currency", :altname "POWR", :decimals 10, :display_decimals 5, :status "enabled"},
+ :CHF {:aclass "currency", :altname "CHF", :decimals 4, :display_decimals 2, :collateral_value 1.0, :status "enabled"},
+ :DAI
+ {:aclass "currency", :altname "DAI", :decimals 10, :display_decimals 5, :collateral_value 0.9, :status "enabled"},
+ :SNX {:aclass "currency", :altname "SNX", :decimals 10, :display_decimals 5, :status "enabled"},
+ :WAXL {:aclass "currency", :altname "WAXL", :decimals 5, :display_decimals 3, :status "enabled"},
+ :PARA {:aclass "currency", :altname "PARA", :decimals 3, :display_decimals 1, :status "enabled"},
+ :OGN {:aclass "currency", :altname "OGN", :decimals 10, :display_decimals 5, :status "enabled"},
+ :ZEUR
+ {:aclass "currency", :altname "EUR", :decimals 4, :display_decimals 2, :collateral_value 1.0, :status "enabled"},
+ :PERP {:aclass "currency", :altname "PERP", :decimals 10, :display_decimals 5, :status "enabled"},
+ :DASH {:aclass "currency", :altname "DASH", :decimals 10, :display_decimals 5, :status "enabled"},
+ :KSM.P {:aclass "currency", :altname "KSM.P", :decimals 10, :display_decimals 8, :status "enabled"},
+ :YFI {:aclass "currency", :altname "YFI", :decimals 10, :display_decimals 5, :status "enabled"},
+ :SOL03.S {:aclass "currency", :altname "SOL03.S", :decimals 10, :display_decimals 5, :status "enabled"},
+ :FXS {:aclass "currency", :altname "FXS", :decimals 10, :display_decimals 5, :status "enabled"},
+ :FLOW14.S {:aclass "currency", :altname "FLOW14.S", :decimals 10, :display_decimals 6, :status "enabled"},
+ :SC {:aclass "currency", :altname "SC", :decimals 10, :display_decimals 5, :status "enabled"},
+ :XXMR {:aclass "currency", :altname "XMR", :decimals 10, :display_decimals 5, :status "enabled"},
+ :XBT.M {:aclass "currency", :altname "XBT.M", :decimals 10, :display_decimals 8, :status "enabled"},
+ :EURT {:aclass "currency", :altname "EURT", :decimals 8, :display_decimals 4, :status "enabled"},
+ :ZJPY
+ {:aclass "currency", :altname "JPY", :decimals 2, :display_decimals 0, :collateral_value 1.0, :status "enabled"},
+ :MC {:aclass "currency", :altname "MC", :decimals 10, :display_decimals 5, :status "enabled"},
+ :BOND {:aclass "currency", :altname "BOND", :decimals 10, :display_decimals 5, :status "enabled"},
+ :SUI {:aclass "currency", :altname "SUI", :decimals 5, :display_decimals 3, :status "enabled"},
+ :KEY {:aclass "currency", :altname "KEY", :decimals 10, :display_decimals 5, :status "enabled"},
+ :ACH {:aclass "currency", :altname "ACH", :decimals 10, :display_decimals 5, :status "enabled"},
+ :IMX {:aclass "currency", :altname "IMX", :decimals 10, :display_decimals 5, :status "enabled"},
+ :RPL {:aclass "currency", :altname "RPL", :decimals 7, :display_decimals 5, :status "enabled"},
+ :WETH {:aclass "currency", :altname "WETH", :decimals 10, :display_decimals 5, :status "enabled"},
+ :REQ {:aclass "currency", :altname "REQ", :decimals 10, :display_decimals 5, :status "enabled"},
+ :MXC {:aclass "currency", :altname "MXC", :decimals 10, :display_decimals 5, :status "enabled"},
+ :KSM07.S {:aclass "currency", :altname "KSM07.S", :decimals 10, :display_decimals 8, :status "enabled"},
+ :WBTC {:aclass "currency", :altname "WBTC", :decimals 10, :display_decimals 5, :status "enabled"},
+ :KFEE {:aclass "currency", :altname "FEE", :decimals 2, :display_decimals 2, :status "enabled"},
+ :OXT {:aclass "currency", :altname "OXT", :decimals 10, :display_decimals 5, :status "enabled"},
+ :CVC {:aclass "currency", :altname "CVC", :decimals 10, :display_decimals 5, :status "enabled"},
+ :ETH2 {:aclass "currency", :altname "ETH2", :decimals 10, :display_decimals 5, :status "enabled"},
+ :NANO {:aclass "currency", :altname "NANO", :decimals 10, :display_decimals 5, :status "enabled"},
+ :SCRT21.S {:aclass "currency", :altname "SCRT21.S", :decimals 8, :display_decimals 5, :status "enabled"},
+ :GST {:aclass "currency", :altname "GST", :decimals 10, :display_decimals 5, :status "enabled"},
+ :ANKR {:aclass "currency", :altname "ANKR", :decimals 10, :display_decimals 5, :status "enabled"},
+ :TOKE {:aclass "currency", :altname "TOKE", :decimals 10, :display_decimals 5, :status "enabled"},
+ :CHZ {:aclass "currency", :altname "CHZ", :decimals 10, :display_decimals 5, :status "enabled"},
+ :XETC {:aclass "currency", :altname "ETC", :decimals 10, :display_decimals 5, :status "enabled"},
+ :ALICE {:aclass "currency", :altname "ALICE", :decimals 10, :display_decimals 5, :status "enabled"},
+ :KIN {:aclass "currency", :altname "KIN", :decimals 8, :display_decimals 5, :status "enabled"},
+ :GRT {:aclass "currency", :altname "GRT", :decimals 10, :display_decimals 5, :status "enabled"},
+ :DOT
+ {:aclass "currency", :altname "DOT", :decimals 10, :display_decimals 8, :collateral_value 0.9, :status "enabled"},
+ :PLA {:aclass "currency", :altname "PLA", :decimals 10, :display_decimals 5, :status "enabled"},
+ :FARM {:aclass "currency", :altname "FARM", :decimals 10, :display_decimals 5, :status "enabled"},
+ ...}
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/request-symbol-pairs
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/request-symbol-pairs
+clj꞉trader1.kraken꞉> 
+#'trader1.kraken/request-symbol-pairs
+clj꞉trader1.kraken꞉> 
+{:DOTGBP
+ {:ordermin "1",
+  :wsname "DOT/GBP",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "DOTGBP",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZGBP",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.43",
+  :base "DOT",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :ZRXEUR
+ {:ordermin "25",
+  :wsname "ZRX/EUR",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "ZRXEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "ZRX",
+  :pair_decimals 3,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :CHZUSD
+ {:ordermin "40",
+  :wsname "CHZ/USD",
+  :cost_decimals 6,
+  :lot_decimals 8,
+  :altname "CHZUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "CHZ",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :ENJGBP
+ {:ordermin "15",
+  :wsname "ENJ/GBP",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "ENJGBP",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZGBP",
+  :status "online",
+  :tick_size "0.001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.43",
+  :base "ENJ",
+  :pair_decimals 3,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :EOSETH
+ {:ordermin "5",
+  :wsname "EOS/ETH",
+  :short_position_limit 0,
+  :cost_decimals 8,
+  :lot_decimals 8,
+  :altname "EOSETH",
+  :aclass_base "currency",
+  :margin_call 80,
+  :long_position_limit 0,
+  :leverage_buy [2 3],
+  :quote "XETH",
+  :status "reduce_only",
+  :tick_size "0.000001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [2 3],
+  :costmin "0.0002",
+  :base "EOS",
+  :pair_decimals 6,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :SOLXBT
+ {:ordermin "0.25",
+  :wsname "SOL/XBT",
+  :short_position_limit 1500,
+  :cost_decimals 9,
+  :lot_decimals 8,
+  :altname "SOLXBT",
+  :aclass_base "currency",
+  :margin_call 80,
+  :long_position_limit 1500,
+  :leverage_buy [2 3 4],
+  :quote "XXBT",
+  :status "online",
+  :tick_size "0.0000001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [2 3 4],
+  :costmin "0.00002",
+  :base "SOL",
+  :pair_decimals 7,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :SCRTEUR
+ {:ordermin "7",
+  :wsname "SCRT/EUR",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "SCRTEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "SCRT",
+  :pair_decimals 3,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :MKRUSD
+ {:ordermin "0.0075",
+  :wsname "MKR/USD",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "MKRUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.1",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "MKR",
+  :pair_decimals 1,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :ETHUSDT
+ {:ordermin "0.01",
+  :wsname "ETH/USDT",
+  :short_position_limit 200,
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "ETHUSDT",
+  :aclass_base "currency",
+  :margin_call 80,
+  :long_position_limit 300,
+  :leverage_buy [2 3],
+  :quote "USDT",
+  :status "online",
+  :tick_size "0.01",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [2 3],
+  :costmin "0.5",
+  :base "XETH",
+  :pair_decimals 2,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :PEPEUSD
+ {:ordermin "500000",
+  :wsname "PEPE/USD",
+  :cost_decimals 5,
+  :lot_decimals 5,
+  :altname "PEPEUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.000000001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "PEPE",
+  :pair_decimals 9,
+  :lot "unit5",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :XETCXXBT
+ {:ordermin "0.25",
+  :wsname "ETC/XBT",
+  :short_position_limit 0,
+  :cost_decimals 8,
+  :lot_decimals 8,
+  :altname "ETCXBT",
+  :aclass_base "currency",
+  :margin_call 80,
+  :long_position_limit 0,
+  :leverage_buy [2 3],
+  :quote "XXBT",
+  :status "reduce_only",
+  :tick_size "0.000001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [2 3],
+  :costmin "0.00002",
+  :base "XETC",
+  :pair_decimals 6,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :SAMOUSD
+ {:ordermin "1250",
+  :wsname "SAMO/USD",
+  :cost_decimals 8,
+  :lot_decimals 8,
+  :altname "SAMOUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.000001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "SAMO",
+  :pair_decimals 6,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :KEEPEUR
+ {:ordermin "30",
+  :wsname "KEEP/EUR",
+  :short_position_limit 0,
+  :cost_decimals 6,
+  :lot_decimals 8,
+  :altname "KEEPEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :long_position_limit 0,
+  :leverage_buy [2],
+  :quote "ZEUR",
+  :status "reduce_only",
+  :tick_size "0.00001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [2],
+  :costmin "0.45",
+  :base "KEEP",
+  :pair_decimals 5,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :QTUMXBT
+ {:ordermin "2.5",
+  :wsname "QTUM/XBT",
+  :cost_decimals 8,
+  :lot_decimals 8,
+  :altname "QTUMXBT",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "XXBT",
+  :status "online",
+  :tick_size "0.0000001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.00002",
+  :base "QTUM",
+  :pair_decimals 7,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :KINTEUR
+ {:ordermin "6.5",
+  :wsname "KINT/EUR",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "KINTEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.01",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "KINT",
+  :pair_decimals 2,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :STORJEUR
+ {:ordermin "15",
+  :wsname "STORJ/EUR",
+  :cost_decimals 6,
+  :lot_decimals 8,
+  :altname "STORJEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.00001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "STORJ",
+  :pair_decimals 5,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :TEERUSD
+ {:ordermin "15",
+  :wsname "TEER/USD",
+  :cost_decimals 8,
+  :lot_decimals 8,
+  :altname "TEERUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "TEER",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :XETHZGBP
+ {:ordermin "0.01",
+  :wsname "ETH/GBP",
+  :short_position_limit 82,
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "ETHGBP",
+  :aclass_base "currency",
+  :margin_call 80,
+  :long_position_limit 130,
+  :leverage_buy [2 3],
+  :quote "ZGBP",
+  :status "online",
+  :tick_size "0.01",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [2 3],
+  :costmin "0.43",
+  :base "XETH",
+  :pair_decimals 2,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :EWTXBT
+ {:ordermin "1.5",
+  :wsname "EWT/XBT",
+  :cost_decimals 9,
+  :lot_decimals 8,
+  :altname "EWTXBT",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "XXBT",
+  :status "online",
+  :tick_size "0.00000001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.00002",
+  :base "EWT",
+  :pair_decimals 8,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :AUDIOUSD
+ {:ordermin "20",
+  :wsname "AUDIO/USD",
+  :cost_decimals 6,
+  :lot_decimals 8,
+  :altname "AUDIOUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "AUDIO",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :NYMUSD
+ {:ordermin "25",
+  :wsname "NYM/USD",
+  :cost_decimals 6,
+  :lot_decimals 8,
+  :altname "NYMUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "NYM",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :KP3REUR
+ {:ordermin "0.07",
+  :wsname "KP3R/EUR",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "KP3REUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.1",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "KP3R",
+  :pair_decimals 1,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :XXBTZJPY
+ {:ordermin "0.0001",
+  :wsname "XBT/JPY",
+  :cost_decimals 3,
+  :lot_decimals 8,
+  :altname "XBTJPY",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZJPY",
+  :status "online",
+  :tick_size "1",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "50",
+  :base "XXBT",
+  :pair_decimals 0,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :XXBTZCAD
+ {:ordermin "0.0001",
+  :wsname "XBT/CAD",
+  :short_position_limit 7,
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "XBTCAD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :long_position_limit 7,
+  :leverage_buy [2 3],
+  :quote "ZCAD",
+  :status "online",
+  :tick_size "0.1",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [2 3],
+  :costmin "1",
+  :base "XXBT",
+  :pair_decimals 1,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :STGUSD
+ {:ordermin "6",
+  :wsname "STG/USD",
+  :cost_decimals 8,
+  :lot_decimals 8,
+  :altname "STGUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "STG",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :DOTEUR
+ {:ordermin "1",
+  :wsname "DOT/EUR",
+  :short_position_limit 24000,
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "DOTEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :long_position_limit 23000,
+  :leverage_buy [2 3],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [2 3],
+  :costmin "0.45",
+  :base "DOT",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :SUPERUSD
+ {:ordermin "50",
+  :wsname "SUPER/USD",
+  :cost_decimals 6,
+  :lot_decimals 8,
+  :altname "SUPERUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "SUPER",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :SCEUR
+ {:ordermin "1300",
+  :wsname "SC/EUR",
+  :short_position_limit 5200000,
+  :cost_decimals 6,
+  :lot_decimals 8,
+  :altname "SCEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :long_position_limit 6200000,
+  :leverage_buy [2 3],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.00001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [2 3],
+  :costmin "0.45",
+  :base "SC",
+  :pair_decimals 5,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :BANDEUR
+ {:ordermin "3",
+  :wsname "BAND/EUR",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "BANDEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "BAND",
+  :pair_decimals 3,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :API3USD
+ {:ordermin "3.5",
+  :wsname "API3/USD",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "API3USD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "API3",
+  :pair_decimals 3,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :HFTUSD
+ {:ordermin "8.5",
+  :wsname "HFT/USD",
+  :cost_decimals 8,
+  :lot_decimals 8,
+  :altname "HFTUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "HFT",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :QNTUSD
+ {:ordermin "0.05",
+  :wsname "QNT/USD",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "QNTUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.01",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "QNT",
+  :pair_decimals 2,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :GNOEUR
+ {:ordermin "0.06",
+  :wsname "GNO/EUR",
+  :cost_decimals 6,
+  :lot_decimals 8,
+  :altname "GNOEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.01",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "GNO",
+  :pair_decimals 2,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :BNCUSD
+ {:ordermin "12.5",
+  :wsname "BNC/USD",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "BNCUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "BNC",
+  :pair_decimals 3,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :YGGUSD
+ {:ordermin "17.5",
+  :wsname "YGG/USD",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "YGGUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "YGG",
+  :pair_decimals 3,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :XCNEUR
+ {:ordermin "300",
+  :wsname "XCN/EUR",
+  :cost_decimals 9,
+  :lot_decimals 8,
+  :altname "XCNEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.00001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "XCN",
+  :pair_decimals 5,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :USDCHF
+ {:ordermin "5",
+  :wsname "USD/CHF",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "USDCHF",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "CHF",
+  :status "online",
+  :tick_size "0.00001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.2] [50000 0.16] [100000 0.12] [250000 0.08] [500000 0.04] [1000000 0.02] [10000000 0.01] [100000000 0.001]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "ZUSD",
+  :pair_decimals 5,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.2] [50000 0.16] [100000 0.12] [250000 0.08] [500000 0.04] [1000000 0.02] [10000000 0.0] [100000000 0.0]]},
+ :EURTUSDT
+ {:ordermin "5",
+  :wsname "EURT/USDT",
+  :cost_decimals 8,
+  :lot_decimals 5,
+  :altname "EURTUSDT",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "USDT",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.2] [50000 0.16] [100000 0.12] [250000 0.08] [500000 0.04] [1000000 0.02] [10000000 0.01] [100000000 0.001]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "EURT",
+  :pair_decimals 4,
+  :lot "unit5",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.2] [50000 0.16] [100000 0.12] [250000 0.08] [500000 0.04] [1000000 0.02] [10000000 0.0] [100000000 0.0]]},
+ :HDXEUR
+ {:ordermin "700",
+  :wsname "HDX/EUR",
+  :cost_decimals 8,
+  :lot_decimals 5,
+  :altname "HDXEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "HDX",
+  :pair_decimals 4,
+  :lot "unit5",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :ACHUSD
+ {:ordermin "325",
+  :wsname "ACH/USD",
+  :cost_decimals 7,
+  :lot_decimals 8,
+  :altname "ACHUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.00001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "ACH",
+  :pair_decimals 5,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :ORCAEUR
+ {:ordermin "6",
+  :wsname "ORCA/EUR",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "ORCAEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "ORCA",
+  :pair_decimals 3,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :MOVREUR
+ {:ordermin "0.65",
+  :wsname "MOVR/EUR",
+  :cost_decimals 6,
+  :lot_decimals 8,
+  :altname "MOVREUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "MOVR",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :CTSIEUR
+ {:ordermin "33",
+  :wsname "CTSI/EUR",
+  :cost_decimals 6,
+  :lot_decimals 8,
+  :altname "CTSIEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "CTSI",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :ICXEUR
+ {:ordermin "30",
+  :wsname "ICX/EUR",
+  :cost_decimals 6,
+  :lot_decimals 8,
+  :altname "ICXEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "ICX",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :JASMYUSD
+ {:ordermin "800",
+  :wsname "JASMY/USD",
+  :cost_decimals 7,
+  :lot_decimals 8,
+  :altname "JASMYUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.00001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "JASMY",
+  :pair_decimals 5,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :GALEUR
+ {:ordermin "2.5",
+  :wsname "GAL/EUR",
+  :cost_decimals 8,
+  :lot_decimals 8,
+  :altname "GALEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "GAL",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :XRTUSD
+ {:ordermin "1",
+  :wsname "XRT/USD",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "XRTUSD",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZUSD",
+  :status "online",
+  :tick_size "0.01",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "XRT",
+  :pair_decimals 2,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :MATICUSDT
+ {:ordermin "4",
+  :wsname "MATIC/USDT",
+  :cost_decimals 8,
+  :lot_decimals 8,
+  :altname "MATICUSDT",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "USDT",
+  :status "online",
+  :tick_size "0.0001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.5",
+  :base "MATIC",
+  :pair_decimals 4,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :UMAEUR
+ {:ordermin "3",
+  :wsname "UMA/EUR",
+  :cost_decimals 5,
+  :lot_decimals 8,
+  :altname "UMAEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :leverage_buy [],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.001",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [],
+  :costmin "0.45",
+  :base "UMA",
+  :pair_decimals 3,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ :PAXGEUR
+ {:ordermin "0.003",
+  :wsname "PAXG/EUR",
+  :short_position_limit 44,
+  :cost_decimals 6,
+  :lot_decimals 8,
+  :altname "PAXGEUR",
+  :aclass_base "currency",
+  :margin_call 80,
+  :long_position_limit 36,
+  :leverage_buy [2 3],
+  :quote "ZEUR",
+  :status "online",
+  :tick_size "0.01",
+  :aclass_quote "currency",
+  :fee_volume_currency "ZUSD",
+  :lot_multiplier 1,
+  :fees
+  [[0 0.26]
+   [50000 0.24]
+   [100000 0.22]
+   [250000 0.2]
+   [500000 0.18]
+   [1000000 0.16]
+   [2500000 0.14]
+   [5000000 0.12]
+   [10000000 0.1]],
+  :leverage_sell [2 3],
+  :costmin "0.45",
+  :base "PAXG",
+  :pair_decimals 2,
+  :lot "unit",
+  :margin_stop 40,
+  :fees_maker
+  [[0 0.16]
+   [50000 0.14]
+   [100000 0.12]
+   [250000 0.1]
+   [500000 0.08]
+   [1000000 0.06]
+   [2500000 0.04]
+   [5000000 0.02]
+   [10000000 0.0]]},
+ ...}
+clj꞉trader1.kraken꞉> 
+; nREPL Connection was closed
