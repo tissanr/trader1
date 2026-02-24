@@ -103,6 +103,20 @@
     (core/throw-if-err reply)
     (get reply :result)))
 
+(defn request-open-orders
+  "Returns open orders from the Kraken private API.
+  Result shape: {:open {\"<txid>\" {:descr {...} :vol \"...\" :status \"open\"}}}"
+  []
+  (let [path "/0/private/OpenOrders"
+        nonce (get-nonce)
+        post-data (str "nonce=" nonce)
+        headers (private-headers path nonce post-data)
+        reply (:body (core/post-form-path (str "https://api.kraken.com" path)
+                                          {"nonce" (str nonce)}
+                                          headers))]
+    (core/throw-if-err reply)
+    (get reply :result)))
+
 (defn request-ticker
   "requests ticker for certain vector of assetpairs via the public API"
   [asset-pairs]

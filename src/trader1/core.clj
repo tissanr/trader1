@@ -1,6 +1,6 @@
 (ns trader1.core
-  (:require [clj-http.client :as client])
-  (:require [cheshire.core :refer [generate-string]])
+  (:require [clj-http.client :as client]
+            [cheshire.core :refer [generate-string]])
   (:gen-class))
 
 
@@ -27,5 +27,12 @@
   (when (not (empty? (:error reply)))
     (throw (Exception. (str "Error happened: " (:error reply))))))
 
+
+(defn -main [& _args]
+  (require 'trader1.web)
+  (let [port   (Integer/parseInt (or (System/getenv "PORT") "3000"))
+        start! (ns-resolve 'trader1.web 'start-server!)]
+    (start! port)
+    (println (str "Trader1 dashboard running on http://localhost:" port))))
 
 ;; just to find out how to call java methods

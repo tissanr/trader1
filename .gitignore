@@ -1,4 +1,6 @@
 credentials/kraken.key
+config/auth.edn
+.DS_Store
 /target
 /classes
 /checkouts

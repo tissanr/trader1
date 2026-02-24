@@ -1,0 +1,174 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+/* Disconnected overlay hint */
+body.disconnected::after {
+  content: "Reconnecting…";
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  background: #c0392b;
+  color: #fff;
+  padding: .3rem .8rem;
+  border-radius: 4px;
+  font-size: .75rem;
+}
+
+/* ── Login ───────────────────────────────────────────────── */
+#login-box {
+  width: 320px;
+  margin: 10vh auto;
+  padding: 2rem;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+}
+
+#login-box h1 {
+  font-size: 1.4rem;
+  color: #f0c040;
+  margin-bottom: 1.5rem;
+}
+
+#login-box label {
+  display: block;
+  margin-bottom: 1rem;
+  font-size: .85rem;
+  color: #999;
+}
+
+#login-box input {
+  display: block;
+  width: 100%;
+  margin-top: .3rem;
+  padding: .5rem .7rem;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #eee;
+  font-size: 1rem;
+}
+
+#login-box input:focus {
+  outline: none;
+  border-color: #f0c040;
+}
+
+#login-box button {
+  width: 100%;
+  margin-top: .5rem;
+  padding: .6rem;
+  background: #f0c040;
+  color: #111;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#login-box button:hover { background: #ffd050; }
+
+p.error {
+  color: #e05050;
+  font-size: .85rem;
+  margin-bottom: 1rem;
+}
+
+/* ── Dashboard ───────────────────────────────────────────── */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .9rem 2rem;
+  background: #1a1a1a;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+header h1 {
+  font-size: 1.1rem;
+  color: #f0c040;
+  letter-spacing: .04em;
+}
+
+header a {
+  color: #888;
+  text-decoration: none;
+  font-size: .85rem;
+}
+
+header a:hover { color: #ccc; }
+
+main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem;
+}
+
+section {
+  background: #1a1a1a;
+  border: 1px solid #252525;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+section h2 {
+  font-size: .75rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 1rem;
+}
+
+/* Ticker */
+#ticker .price {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #f0c040;
+  margin-bottom: .8rem;
+}
+
+#ticker .row {
+  display: flex;
+  gap: 1rem;
+  font-size: .9rem;
+  color: #aaa;
+  margin-top: .3rem;
+}
+
+#ticker .label {
+  color: #555;
+  min-width: 3rem;
+}
+
+/* Balance & Orders */
+ul {
+  list-style: none;
+}
+
+li {
+  padding: .35rem 0;
+  border-bottom: 1px solid #1f1f1f;
+  font-size: .9rem;
+  color: #ccc;
+}
+
+li:last-child { border-bottom: none; }
+
+li.empty { color: #555; font-style: italic; }
+
+/* Order list badges */
+.txid  { color: #555; font-family: monospace; font-size: .8rem; }
+.pair  { color: #aaa; font-weight: 600; }
+.side.buy  { color: #27ae60; font-weight: bold; }
+.side.sell { color: #e74c3c; font-weight: bold; }
+.otype { color: #888; }
+.oprice { color: #f0c040; }
+.vol   { color: #aaa; }
