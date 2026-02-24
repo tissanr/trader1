@@ -1,13 +1,10 @@
 (ns trader1.kraken
   (:require [trader1.core :as core])
   (:require [trader1.security :as security])
+  (:require [clojure.string :as str])
   (:require [digest :as hash])
-  ;;(:require [clj-http.client :as client])
-  (:require [cheshire.core :as json])
-  (:require [clj-time.core :as time])
-  (:require [clj-time.coerce :as tc])
-  ;;(:require [clojure.data.codec.base64 :as b64])
-  (:import java.util.Base64)
+  (:import java.util.Base64
+           java.security.MessageDigest)
   (:import (javax.crypto Mac)
            (javax.crypto.spec SecretKeySpec)))
 
@@ -85,67 +82,50 @@
                        (str path
                             (sign-message nonce post-data (sec-pair :secret))))})))
 
+(def private-base-url "https://api.kraken.com/0/private/")
+
 (defn- get-nonce []
-  (tc/to-long (time/now)))
+  (System/currentTimeMillis))
+
+(defn- sha256-bytes [s]
+  (.digest (MessageDigest/getInstance "SHA-256") (.getBytes s "UTF-8")))
+
+(defn- hmac-sha512-bytes [key-bytes data-bytes]
+  (let [mac (Mac/getInstance "HMACSHA512")
+        secret-key (SecretKeySpec. key-bytes "HMACSHA512")]
+    (.init mac secret-key)
+    (.doFinal mac data-bytes)))
+
+(defn- private-api-sign [path nonce post-data secret]
+  (let [decoded-secret (.decode (Base64/getDecoder) ^String secret)
+        message (byte-array (concat (.getBytes path "UTF-8")
+                                    (sha256-bytes (str nonce post-data))))]
+    (.encodeToString (Base64/getEncoder) (hmac-sha512-bytes decoded-secret message))))
+
+(defn- private-headers [path nonce post-data]
+  (let [{:keys [key secret]} (security/read-in-security-pair)]
+    (merge k-header {:API-Key key
+                     :API-Sign (private-api-sign path nonce post-data secret)})))
+
+(defn request-balance
+  "Returns account balances for all assets"
+  []
+  (let [path "/0/private/Balance"
+        nonce (get-nonce)
+        post-data (str "nonce=" nonce)
+        headers (private-headers path nonce post-data)
+        reply (:body (core/post-form-path (str "https://api.kraken.com" path)
+                                          {"nonce" (str nonce)}
+                                          headers))]
+    (core/throw-if-err reply)
+    (get reply :result)))
 
 (defn request-ticker
-  "requests ticker for certain vector of assetpairs"
+  "requests ticker for certain vector of assetpairs via the public API"
   [asset-pairs]
-  (let [path (str base-url (:ticker method))]
-    (let [nonce (get-nonce)]
-      (let [post-data (json/generate-string {:pair  ["XBTUSD"]
-                                             :nonce nonce})]
-        (let [header (get-header path nonce post-data)]
-          (println path)
-          (println post-data)
-          (println header)
-          (let [reply (:body (core/post-path path
-                                             post-data
-                                             header))]
-            (core/throw-if-err reply)
-            (get reply :result)))))))
+  (let [pair-str (str/join "," asset-pairs)
+        reply (:body (core/get-path base-url (str "Ticker?pair=" pair-str)))]
+    (core/throw-if-err reply)
+    (get reply :result)))
 
 
-(defn- to-hex [bytes]
-  "Convert bytes to a String"
-  (apply str (map #(format "%x" %) bytes)))
-
-
-(str (sha-512 (str (decode-base64 (:secret (security/read-in-security-pair))))
-              "The quick brown fox jumps over the lazy dog."))
-
-#_(str (sha-512 (str (b64/decode
-                       (bytes
-                         (:secret
-                           (security/read-in-security-pair)))))
-                "The quick brown fox jumps over the lazy dog."))
-
-#_(to-hex (let [s-pair (security/read-in-security-pair)]
-            (decode-b (s-pair :secret))))
-
-#_(defprotocol encode
-    "encode stuff"
-    (encode-base64 [x]))
-
-
-#_(extend-protocol encode
-    (Class/forName "[B")
-    (encode-base64 [x] (.encodeToString (Base64/getEncoder) x)))
-
-#_(defprotocol decode
-    "decode stuff"
-    (decode-base64 [x]))
-
-#_(extend-protocol decode
-    String
-    (decode-base64 [x] (decode-base64 (.getBytes x))))
-
-#_(extend-protocol decode
-    (Class/forName "[B")
-    (decode-base64 [x] (.decode (Base64/getDecoder) x)))
-
-#_(defmulti encode-base64 class)
-#_(defmethod encode-base64 java.lang.Byte [to-encode]
-    (.encodeToString (Base64/getEncoder) to-encode))
-#_(defmethod encode-base64 String [to-encode]
-    (encode-base64 (.getBytes to-encode)))
