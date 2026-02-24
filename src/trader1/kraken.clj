@@ -9,17 +9,6 @@
            (javax.crypto.spec SecretKeySpec)))
 
 (def base-url "https://api.kraken.com/0/public/")
-(def version 0)
-(def public "/public/")
-(def private "/private/")
-
-(def method {:assets      "Assets"
-             :asset-pairs "AssetPairs"
-             :ticker      "Ticker"})
-
-(def private-method {:balance       "Balance"
-                     :trade-balance "TradeBalance"
-                     :open-orders   "OpenOrders"})
 
 (def k-header {:User-Agent "kraken-clj/v0.1"})
 
@@ -39,7 +28,6 @@
     (core/throw-if-err reply)
     (:result reply)))
 
-
 (defn request-symbol-pairs
   "they call them tradable asset pairs"
   []
@@ -47,25 +35,22 @@
     (core/throw-if-err reply)
     (get reply :result)))
 
-
-(defn- decode-base64 [x]
+(defn- decode-base64 [^String x]
   (.decode (Base64/getDecoder) x))
 
-
-(defn- secret-key-inst [secret mac]
+(defn- secret-key-inst [^String secret ^Mac mac]
   (SecretKeySpec. (.getBytes secret) (.getAlgorithm mac)))
 
-
-(defn- sha-512 [key string]
-  "Returns the signature of a string with a given 
+(defn- sha-512
+  "Returns the signature of a string with a given
     key, using a SHA-512 HMAC."
+  [^String key ^String string]
   (let [mac (Mac/getInstance "HMACSHA512")
         secretKey (secret-key-inst key mac)]
     (-> (doto mac
           (.init secretKey)
           (.update (.getBytes string)))
         .doFinal)))
-
 
 (defn- sign-message
   [nonce post-data secret]
@@ -82,22 +67,20 @@
                        (str path
                             (sign-message nonce post-data (sec-pair :secret))))})))
 
-(def private-base-url "https://api.kraken.com/0/private/")
-
 (defn- get-nonce []
   (System/currentTimeMillis))
 
-(defn- sha256-bytes [s]
+(defn- sha256-bytes [^String s]
   (.digest (MessageDigest/getInstance "SHA-256") (.getBytes s "UTF-8")))
 
-(defn- hmac-sha512-bytes [key-bytes data-bytes]
+(defn- hmac-sha512-bytes [^bytes key-bytes ^bytes data-bytes]
   (let [mac (Mac/getInstance "HMACSHA512")
         secret-key (SecretKeySpec. key-bytes "HMACSHA512")]
     (.init mac secret-key)
     (.doFinal mac data-bytes)))
 
-(defn- private-api-sign [path nonce post-data secret]
-  (let [decoded-secret (.decode (Base64/getDecoder) ^String secret)
+(defn- private-api-sign [^String path nonce post-data ^String secret]
+  (let [decoded-secret (.decode (Base64/getDecoder) secret)
         message (byte-array (concat (.getBytes path "UTF-8")
                                     (sha256-bytes (str nonce post-data))))]
     (.encodeToString (Base64/getEncoder) (hmac-sha512-bytes decoded-secret message))))
