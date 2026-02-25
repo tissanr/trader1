@@ -1,6 +1,6 @@
 # trader1
 
-A Clojure library for querying cryptocurrency exchange APIs (Kraken, Bitfinex).
+A Clojure cryptocurrency trading dashboard that queries Kraken exchange APIs and presents data via a web UI with real-time WebSocket updates.
 
 ## Setup
 
@@ -32,6 +32,30 @@ Private Kraken API endpoints (e.g. account balance) require API keys.
 
 Public endpoints (ticker, symbols, server time) work without credentials.
 
+### Web UI users
+
+1. Copy the example file:
+   ```bash
+   cp config/auth.edn.example config/auth.edn
+   ```
+2. Generate a password hash in the REPL:
+   ```clojure
+   (require '[trader1.auth :as auth])
+   (auth/hash-password "your-password")
+   ```
+3. Paste the hash into `config/auth.edn`.
+
+---
+
+## Running
+
+```bash
+lein run            # Start on port 3000
+PORT=8080 lein run  # Start on a custom port
+```
+
+Open `http://localhost:3000` and log in with the credentials from `config/auth.edn`.
+
 ---
 
 ## Namespaces
@@ -43,12 +67,8 @@ Low-level HTTP utilities shared by all exchange namespaces.
 | Function | Signature | Description |
 |---|---|---|
 | `get-path` | `[url path]` | HTTP GET — concatenates `url` and `path`, returns parsed JSON response |
-| `get-csv` | `[url path]` | HTTP GET — returns response as CSV |
-| `post-path` | `[url post-data header]` | HTTP POST with a JSON body |
 | `post-form-path` | `[url form-params headers]` | HTTP POST with `application/x-www-form-urlencoded` body (used for Kraken private endpoints) |
 | `throw-if-err` | `[reply]` | Throws an `Exception` if the response map contains a non-empty `:error` field |
-| `filter-by-symbol` | `[symbol structure]` | Filters a map of exchange entries, keeping keys that match `symbol` (case-insensitive) |
-| `get-number-of-threads` | `[]` | Returns the number of available processor threads |
 
 ---
 
@@ -61,6 +81,19 @@ Reads Kraken API credentials from disk.
 | `read-in-security-pair` | `[]` | Reads `credentials/kraken.key` and returns `{:key "..." :secret "..."}` |
 
 The credentials file path is defined as `credentials-file` and defaults to `"credentials/kraken.key"` (relative to the project root).
+
+---
+
+### `trader1.auth`
+
+Web UI user management.
+
+| Function | Signature | Description |
+|---|---|---|
+| `load-users` | `[]` | Reads and parses `config/auth.edn` |
+| `find-user` | `[username]` | Returns the user map for the given username, or `nil` |
+| `authenticate` | `[username password]` | Returns the user map if credentials are valid, else `nil` |
+| `hash-password` | `[plaintext]` | Produces a bcrypt+sha512 hash suitable for `config/auth.edn` |
 
 ---
 
@@ -98,6 +131,7 @@ Each asset pair in the result map contains:
 | Function | Signature | Description |
 |---|---|---|
 | `request-balance` | `[]` | Returns account balances for all assets as a map of `asset → balance-string`. |
+| `request-open-orders` | `[]` | Returns open orders as `{:open {"<txid>" {...}}}`. |
 
 ##### Authentication
 
@@ -109,15 +143,13 @@ Private requests are signed using Kraken's HMAC-SHA512 scheme:
 
 ---
 
-### `trader1.bitfinex`
+### `trader1.web`
 
-Bitfinex v1 API client. Base URL: `https://api.bitfinex.com/v1/`.
+HTTP server, routing, HTML templates, WebSocket endpoint, and background data broadcaster.
 
-| Function | Signature | Description |
-|---|---|---|
-| `request-symbols-bitfinex` | `[]` | Returns a list of all supported trading pair symbols (e.g. `["btcusd" "ethusd" ...]`). |
-| `request-course-bitfinex` | `[course]` | Returns the ticker for the given symbol string (e.g. `"btcusd"`). |
-| `get-btc-usd-bitfinex` | `[]` | Convenience wrapper — returns the current BTC/USD ticker from Bitfinex. |
+- Login/logout with session cookie and CSRF protection
+- Dashboard served only to authenticated users
+- WebSocket pushes ticker every 5s, open orders every 15s, balance every 30s
 
 ---
 
@@ -125,12 +157,11 @@ Bitfinex v1 API client. Base URL: `https://api.bitfinex.com/v1/`.
 
 ```clojure
 (require '[trader1.kraken :as kraken])
-(require '[trader1.bitfinex :as bitfinex])
 
 ;; Check Kraken server time
 (kraken/request-server-time)
 
-;; Get BTC/USD ticker from Kraken
+;; Get BTC/USD ticker
 (kraken/request-ticker ["XBTUSD"])
 ;; => {:XXBTZUSD {:c ["63821.00000" "0.02648261"], :a [...], :b [...], ...}}
 
@@ -139,11 +170,10 @@ Bitfinex v1 API client. Base URL: `https://api.bitfinex.com/v1/`.
 
 ;; Get account balance (requires credentials/kraken.key)
 (kraken/request-balance)
-;; => {:XXBT "0.5000000", :ZUSD "1234.56", ...}
+;; => {"XXBT" "0.5000000", "ZUSD" "1234.56", ...}
 
-;; Get BTC/USD ticker from Bitfinex
-(bitfinex/get-btc-usd-bitfinex)
-;; => {:bid "63800.0", :ask "63802.0", :last_price "63801.0", ...}
+;; Get open orders (requires credentials/kraken.key)
+(kraken/request-open-orders)
 ```
 
 ---
@@ -154,10 +184,15 @@ Bitfinex v1 API client. Base URL: `https://api.bitfinex.com/v1/`.
 lein test
 ```
 
-The test suite covers:
-- `trader1.core-test` — `throw-if-err` error handling
-- `trader1.security-test` — credential file reading (requires `credentials/kraken.key`)
-- `trader1.kraken-test` — live public endpoint calls (server time, symbols, asset pairs, ticker)
+All tests use mocks — no live API calls or credential files are required.
+
+| Test namespace | Covers |
+|---|---|
+| `trader1.core-test` | `throw-if-err`, `get-path`, `post-form-path` |
+| `trader1.security-test` | Credential file parsing (uses test fixture) |
+| `trader1.kraken-test` | All public and private Kraken endpoints (mocked) |
+| `trader1.auth-test` | `load-users`, `find-user`, `authenticate`, `hash-password` |
+| `trader1.web-test` | HTML templates, route handlers, WebSocket broadcast |
 
 ---
 
@@ -165,10 +200,14 @@ The test suite covers:
 
 | Library | Purpose |
 |---|---|
-| `clj-http` | HTTP client |
+| `http-kit` | Async HTTP server + WebSocket |
+| `compojure` | Route definitions |
+| `hiccup` | HTML generation |
+| `ring/ring-defaults` | Session, CSRF, middleware |
+| `buddy-hashers` | bcrypt+sha512 password hashing |
+| `clj-http` | Outbound HTTP client |
 | `cheshire` | JSON parsing |
-| `clj-time` | Date/time utilities |
-| `digest` | SHA hashing |
+| `digest` | SHA hashing (Kraken signing) |
 | `org.clojure/data.codec` | Base64 encoding |
 
 ---
