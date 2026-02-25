@@ -2,6 +2,7 @@
   (:require [compojure.core :refer [defroutes GET POST]]
             [compojure.route :as route]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
+            [ring.util.anti-forgery :refer [anti-forgery-field]]
             [ring.util.response :as resp]
             [hiccup.core :refer [html]]
             [hiccup.page :refer [html5 include-css include-js]]
@@ -35,11 +36,16 @@
       [:h1 "Trader1"]
       (when error-msg [:p.error error-msg])
       [:form {:method "post" :action "/login"}
+       (anti-forgery-field)
        [:label "Username"
         [:input {:type "text" :name "username" :autofocus true :required true}]]
        [:label "Password"
         [:input {:type "password" :name "password" :required true}]]
        [:button {:type "submit"} "Sign in"]]]]))
+
+(defn- html-response [body]
+  (-> (resp/response body)
+      (resp/content-type "text/html; charset=utf-8")))
 
 (defn dashboard-page []
   (html5
@@ -76,7 +82,7 @@
     (if-let [user (auth/authenticate username password)]
       (-> (resp/redirect "/dashboard")
           (assoc :session {:identity (:username user)}))
-      (resp/response (login-page "Invalid username or password.")))))
+      (html-response (login-page "Invalid username or password.")))))
 
 (defn logout-handler [_]
   (-> (resp/redirect "/login")
@@ -92,19 +98,18 @@
 
 (defroutes app-routes
   (GET  "/"          _   (resp/redirect "/dashboard"))
-  (GET  "/login"     _   (resp/response (login-page nil)))
+  (GET  "/login"     _   (html-response (login-page nil)))
   (POST "/login"     req (login-handler req))
   (GET  "/logout"    req (logout-handler req))
   (GET  "/dashboard" req (if (get-in req [:session :identity])
-                           (resp/response (dashboard-page))
+                           (html-response (dashboard-page))
                            (resp/redirect "/login")))
   (GET  "/ws"        req (websocket-handler req))
   (route/resources "/")
   (route/not-found "Not found"))
 
 (def app
-  (wrap-defaults app-routes
-    (assoc-in site-defaults [:security :anti-forgery] false)))
+  (wrap-defaults app-routes site-defaults))
 
 ;; --- Background broadcaster ---
 
