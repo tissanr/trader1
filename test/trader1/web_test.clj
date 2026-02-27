@@ -3,10 +3,12 @@
             [cheshire.core :as json]
             [org.httpkit.server :as httpkit]
             [trader1.auth :as auth]
+            [trader1.kraken :as kraken]
             [trader1.web :refer [broadcast! connected-channels
                                   login-page dashboard-page
                                   login-handler logout-handler
-                                  websocket-handler app-routes]]))
+                                  websocket-handler app-routes
+                                  start-broadcaster!]]))
 
 ;; --- login-page ---
 
@@ -139,3 +141,85 @@
       (with-redefs [httpkit/send! (fn [_ msg] (swap! sent conj msg))]
         (broadcast! {:type "ticker" :data {}})
         (is (empty? @sent))))))
+
+;; --- start-broadcaster! ---
+;;
+;; The broadcaster loop runs its first iteration immediately (Thread/sleep comes
+;; *after* the work).  last-balance and last-orders start at 0, so
+;; (currentTimeMillis - 0) > 30000/15000 is always true on the first pass —
+;; all three data types are fetched.  Promises are used for coordination so
+;; tests complete as soon as the iteration finishes, without artificial sleeps.
+
+(deftest start-broadcaster-no-channels-test
+  (testing "does not fetch or broadcast when no channels are connected"
+    (let [ticker-called (promise)]
+      (reset! connected-channels #{})
+      (try
+        (with-redefs [kraken/request-ticker (fn [_] (deliver ticker-called true) {})]
+          (start-broadcaster!)
+          ;; If the channel guard works, ticker is never called within 300 ms.
+          (is (= :not-called (deref ticker-called 300 :not-called))))
+        (finally
+          (reset! connected-channels #{}))))))
+
+(deftest start-broadcaster-all-types-test
+  (testing "broadcasts ticker, balance and orders on the first iteration"
+    (let [broadcast-types (atom #{})
+          all-done        (promise)
+          fake-ch         (Object.)]
+      (reset! connected-channels #{fake-ch})
+      (try
+        (with-redefs [kraken/request-ticker      (fn [_] {:XBTUSD {:a ["50000"]}})
+                      kraken/request-balance     (fn [] {"XXBT" "1.5"})
+                      kraken/request-open-orders (fn [] {:open {}})
+                      broadcast! (fn [payload]
+                                   (swap! broadcast-types conj (:type payload))
+                                   (when (= 3 (count @broadcast-types))
+                                     (deliver all-done true)))]
+          (start-broadcaster!)
+          (is (= true (deref all-done 1000 :timeout)))
+          (is (= #{"ticker" "balance" "orders"} @broadcast-types)))
+        (finally
+          (reset! connected-channels #{}))))))
+
+(deftest start-broadcaster-payload-structure-test
+  (testing "ticker broadcast wraps the kraken result under :data with type \"ticker\""
+    (let [ticker-data     {:XBTUSD {:a ["50000"] :b ["49999"]}}
+          received-ticker (promise)
+          fake-ch         (Object.)]
+      (reset! connected-channels #{fake-ch})
+      (try
+        (with-redefs [kraken/request-ticker      (fn [_] ticker-data)
+                      kraken/request-balance     (fn [] {})
+                      kraken/request-open-orders (fn [] {})
+                      broadcast! (fn [payload]
+                                   (when (= "ticker" (:type payload))
+                                     (deliver received-ticker payload)))]
+          (start-broadcaster!)
+          (let [result (deref received-ticker 1000 nil)]
+            (is (some? result))
+            (is (= {:type "ticker" :data ticker-data} result))))
+        (finally
+          (reset! connected-channels #{}))))))
+
+(deftest start-broadcaster-fetch-exception-test
+  (testing "exception thrown by a fetcher is swallowed; other types still broadcast"
+    (let [broadcasts (atom [])
+          done       (promise)
+          fake-ch    (Object.)]
+      (reset! connected-channels #{fake-ch})
+      (try
+        (with-redefs [kraken/request-ticker      (fn [_] (throw (Exception. "ticker API down")))
+                      kraken/request-balance     (fn [] {"XXBT" "1.0"})
+                      kraken/request-open-orders (fn [] {:open {}})
+                      broadcast! (fn [payload]
+                                   (swap! broadcasts conj payload)
+                                   (when (= 2 (count @broadcasts))
+                                     (deliver done true)))]
+          (start-broadcaster!)
+          (is (= true (deref done 1000 :timeout)))
+          (is (not-any? #(= "ticker" (:type %)) @broadcasts))
+          (is (some    #(= "balance" (:type %)) @broadcasts))
+          (is (some    #(= "orders"  (:type %)) @broadcasts)))
+        (finally
+          (reset! connected-channels #{}))))))
