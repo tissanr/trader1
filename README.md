@@ -1,179 +1,183 @@
 # trader1
 
-A Clojure library for querying cryptocurrency exchange APIs (Kraken, Bitfinex).
+## 1. Project Overview
 
-## Setup
+`trader1` is a Clojure trading dashboard application for Interactive Brokers.
 
-### Prerequisites
+It connects to Interactive Brokers TWS or IB Gateway through the async wrapper [`ib-cl-wrap`](https://github.com/reiterstephan-tech/ib-cl-wrap) and displays:
 
-- Java 8+
-- [Leiningen](https://leiningen.org/)
+- Portfolio Balance (USD)
+- Current portfolio positions
+- Open orders, including manual TWS orders (via `client-id = 0`)
 
-### Install dependencies
+## 2. Architecture
+
+Main components:
+
+- `trader1`: HTTP server, WebSocket broadcaster, authenticated dashboard UI
+- `ib-cl-wrap`: async IB API wrapper (`core.async` + snapshot helpers)
+- IB TWS / IB Gateway: broker runtime endpoint
+- IB Java API (`ibapi.jar`): required Java classes used by the wrapper
+
+```text
+TWS / IB Gateway
+        |
+        v
+   ib-cl-wrap
+        |
+        v
+     trader1
+        |
+        v
+   Dashboard UI
+```
+
+## 3. Requirements
+
+- Java 8+ (project currently targets Java 8-compatible dependencies)
+- Leiningen (this repository is Leiningen-based)
+- Interactive Brokers TWS or IB Gateway
+- IB API JAR file (`ibapi.jar`)
+
+## 4. Interactive Brokers Setup
+
+In TWS (or equivalent Gateway API settings):
+
+- Enable API socket access (`Enable ActiveX and Socket Clients`)
+- Allow local connections (`127.0.0.1` / localhost)
+
+Default IB API ports:
+
+- Paper TWS: `7497`
+- Live TWS: `7496`
+- Paper Gateway: `4002`
+- Live Gateway: `4001`
+
+Important:
+
+- `client-id = 0` is required to include manual TWS orders in open-order snapshots.
+- Using other client IDs generally restricts visibility to API-submitted orders.
+
+## 5. Installation
+
+Clone the repository:
 
 ```bash
-lein deps
+git clone https://github.com/reiterstephan-tech/trader1.git
+cd trader1
 ```
 
-### Credentials
+Initialize submodules (required):
 
-Private Kraken API endpoints (e.g. account balance) require API keys.
+```bash
+git submodule update --init --recursive
+```
 
-1. Copy the example file:
-   ```bash
-   cp credentials/kraken.key.example credentials/kraken.key
-   ```
-2. Edit `credentials/kraken.key` — put your API key on line 1 and your base64-encoded secret on line 2:
-   ```
-   your-api-key-here
-   your-base64-secret-here
-   ```
-3. The file is gitignored and will not be committed.
+IB API JAR:
 
-Public endpoints (ticker, symbols, server time) work without credentials.
+- Download `ibapi.jar` separately from Interactive Brokers.
+- Place it at:
 
----
+```text
+lib/ibapi.jar
+```
 
-## Namespaces
+Dependency details:
 
-### `trader1.core`
+- `ib-cl-wrap` is included as a pinned git submodule dependency.
+- Current pinned commit:
+  - `a559b1648a969334554662d048b4c6e586c20a0d`
 
-Low-level HTTP utilities shared by all exchange namespaces.
+## 6. Configuration
 
-| Function | Signature | Description |
-|---|---|---|
-| `get-path` | `[url path]` | HTTP GET — concatenates `url` and `path`, returns parsed JSON response |
-| `get-csv` | `[url path]` | HTTP GET — returns response as CSV |
-| `post-path` | `[url post-data header]` | HTTP POST with a JSON body |
-| `post-form-path` | `[url form-params headers]` | HTTP POST with `application/x-www-form-urlencoded` body (used for Kraken private endpoints) |
-| `throw-if-err` | `[reply]` | Throws an `Exception` if the response map contains a non-empty `:error` field |
-| `filter-by-symbol` | `[symbol structure]` | Filters a map of exchange entries, keeping keys that match `symbol` (case-insensitive) |
-| `get-number-of-threads` | `[]` | Returns the number of available processor threads |
+Runtime IB connection is configured via environment variables in the current implementation:
 
----
+- `IB_HOST` (default: `127.0.0.1`)
+- `IB_PORT` (default: `7497`)
+- `client-id` is fixed to `0` in code
+- snapshot timeout is fixed to `5000 ms` in code
 
-### `trader1.security`
-
-Reads Kraken API credentials from disk.
-
-| Function | Signature | Description |
-|---|---|---|
-| `read-in-security-pair` | `[]` | Reads `credentials/kraken.key` and returns `{:key "..." :secret "..."}` |
-
-The credentials file path is defined as `credentials-file` and defaults to `"credentials/kraken.key"` (relative to the project root).
-
----
-
-### `trader1.kraken`
-
-Kraken exchange API client. Base URL: `https://api.kraken.com/0/`.
-
-#### Public endpoints (no credentials required)
-
-| Function | Signature | Description |
-|---|---|---|
-| `request-server-time` | `[]` | Returns the Kraken server time. Useful for connectivity checks. |
-| `request-symbols` | `[]` | Returns a map of all tradable assets with metadata (alt name, asset class, decimal precision). |
-| `request-symbol-pairs` | `[]` | Returns a map of all tradable asset pairs (e.g. `XBTZUSD`). |
-| `request-ticker` | `[asset-pairs]` | Returns ticker data for the given pairs (e.g. `["XBTUSD"]`). |
-
-##### Ticker response fields
-
-Each asset pair in the result map contains:
-
-| Key | Description |
-|---|---|
-| `:a` | Ask `[price, whole-lot-volume, lot-volume]` |
-| `:b` | Bid `[price, whole-lot-volume, lot-volume]` |
-| `:c` | Last trade closed `[price, lot-volume]` |
-| `:v` | Volume `[today, last-24h]` |
-| `:p` | Volume-weighted average price `[today, last-24h]` |
-| `:t` | Number of trades `[today, last-24h]` |
-| `:l` | Low `[today, last-24h]` |
-| `:h` | High `[today, last-24h]` |
-| `:o` | Today's opening price |
-
-#### Private endpoints (credentials required)
-
-| Function | Signature | Description |
-|---|---|---|
-| `request-balance` | `[]` | Returns account balances for all assets as a map of `asset → balance-string`. |
-
-##### Authentication
-
-Private requests are signed using Kraken's HMAC-SHA512 scheme:
-1. A nonce (current time in milliseconds) is generated.
-2. The POST body is URL-encoded: `nonce=<value>`.
-3. The signature is `base64(HMAC-SHA512(base64_decoded_secret, path_bytes + SHA256(nonce + post_data)))`.
-4. `API-Key` and `API-Sign` headers are added to the request.
-
----
-
-### `trader1.bitfinex`
-
-Bitfinex v1 API client. Base URL: `https://api.bitfinex.com/v1/`.
-
-| Function | Signature | Description |
-|---|---|---|
-| `request-symbols-bitfinex` | `[]` | Returns a list of all supported trading pair symbols (e.g. `["btcusd" "ethusd" ...]`). |
-| `request-course-bitfinex` | `[course]` | Returns the ticker for the given symbol string (e.g. `"btcusd"`). |
-| `get-btc-usd-bitfinex` | `[]` | Convenience wrapper — returns the current BTC/USD ticker from Bitfinex. |
-
----
-
-## Usage examples
+Reference configuration map (conceptual shape):
 
 ```clojure
-(require '[trader1.kraken :as kraken])
-(require '[trader1.bitfinex :as bitfinex])
-
-;; Check Kraken server time
-(kraken/request-server-time)
-
-;; Get BTC/USD ticker from Kraken
-(kraken/request-ticker ["XBTUSD"])
-;; => {:XXBTZUSD {:c ["63821.00000" "0.02648261"], :a [...], :b [...], ...}}
-
-;; Get all available asset pairs
-(kraken/request-symbol-pairs)
-
-;; Get account balance (requires credentials/kraken.key)
-(kraken/request-balance)
-;; => {:XXBT "0.5000000", :ZUSD "1234.56", ...}
-
-;; Get BTC/USD ticker from Bitfinex
-(bitfinex/get-btc-usd-bitfinex)
-;; => {:bid "63800.0", :ask "63802.0", :last_price "63801.0", ...}
+{:ib {:host "127.0.0.1"
+      :port 7497
+      :client-id 0
+      :timeout-ms 5000}}
 ```
 
----
+Field meaning:
 
-## Running tests
+- `:host`: IB API host
+- `:port`: IB API socket port
+- `:client-id`: IB client identifier (`0` required for manual TWS orders)
+- `:timeout-ms`: snapshot timeout per IB request
+
+## 7. Running the Application
+
+Start the server:
+
+```bash
+lein run
+```
+
+Optional custom HTTP port:
+
+```bash
+PORT=8080 lein run
+```
+
+Startup behavior:
+
+- Connects to IB (`ib.client/connect!`) with `client-id = 0`
+- Subscribes to IB events
+- Starts async snapshot refresh loop (default every 10 seconds)
+- Loads and pushes dashboard data for:
+  - Portfolio balance (`NetLiquidation`)
+  - Positions
+  - Open orders
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+## 8. Dashboard Layout
+
+The dashboard main row has four columns:
+
+| Column | Content |
+|---|---|
+| 1 | Portfolio Balance (USD) |
+| 2 | Empty spacer cell |
+| 3 | Portfolio Positions |
+| 4 | Open Orders |
+
+## 9. Error Handling
+
+Current behavior:
+
+- IB timeout in a snapshot cell: shows `IB Timeout` in that cell only
+- Lost IB session / disconnected runtime: affected cells show `Disconnected`
+- Missing `ibapi.jar`: IB connection initialization fails immediately; startup logs and UI reflect IB connection error
+- IB error events: logged server-side and emitted to the UI
+
+## 10. Development
+
+Run tests:
 
 ```bash
 lein test
 ```
 
-The test suite covers:
-- `trader1.core-test` — `throw-if-err` error handling
-- `trader1.security-test` — credential file reading (requires `credentials/kraken.key`)
-- `trader1.kraken-test` — live public endpoint calls (server time, symbols, asset pairs, ticker)
+Notes:
 
----
+- Snapshot calls use async flows (`core.async/go`) through `ib-cl-wrap`
+- No blocking logic is run inside IB callback threads
 
-## Dependencies
+## 11. Security Notice
 
-| Library | Purpose |
-|---|---|
-| `clj-http` | HTTP client |
-| `cheshire` | JSON parsing |
-| `clj-time` | Date/time utilities |
-| `digest` | SHA hashing |
-| `org.clojure/data.codec` | Base64 encoding |
-
----
-
-## License
-
-Copyright © 2018 Stephan Reiter
-Distributed under the Eclipse Public License, version 1.0 or later.
+- `client-id = 0` binds manual TWS orders into the open-order view.
+- This increases operational sensitivity when connected to live accounts.
+- Validate behavior against Paper accounts first, then move to Live deliberately.

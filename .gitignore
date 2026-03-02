@@ -1,5 +1,6 @@
 credentials/kraken.key
 config/auth.edn
+config/settings.edn
 .DS_Store
 /target
 /classes
@@ -13,3 +14,5 @@ pom.xml.asc
 .hgignore
 .hg/
 /.idea
+.clj-kondo/
+.lsp/
