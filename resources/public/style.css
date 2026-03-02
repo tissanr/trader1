@@ -7,9 +7,8 @@ body {
   min-height: 100vh;
 }
 
-/* Disconnected overlay hint */
 body.disconnected::after {
-  content: "Reconnecting…";
+  content: "Disconnected";
   position: fixed;
   bottom: 1rem;
   right: 1rem;
@@ -20,7 +19,6 @@ body.disconnected::after {
   font-size: .75rem;
 }
 
-/* ── Login ───────────────────────────────────────────────── */
 #login-box {
   width: 320px;
   margin: 10vh auto;
@@ -81,7 +79,6 @@ p.error {
   margin-bottom: 1rem;
 }
 
-/* ── Dashboard ───────────────────────────────────────────── */
 header {
   display: flex;
   justify-content: space-between;
@@ -110,18 +107,19 @@ header a {
 
 header a:hover { color: #ccc; }
 
-main {
+#dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.5rem;
-  padding: 2rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1.25rem;
 }
 
 section {
   background: #1a1a1a;
   border: 1px solid #252525;
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 1rem;
+  min-height: 280px;
 }
 
 section h2 {
@@ -129,31 +127,53 @@ section h2 {
   color: #666;
   text-transform: uppercase;
   letter-spacing: .08em;
-  margin-bottom: 1rem;
-}
-
-/* Ticker */
-#ticker .price {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #f0c040;
   margin-bottom: .8rem;
 }
 
-#ticker .row {
-  display: flex;
-  gap: 1rem;
-  font-size: .9rem;
-  color: #aaa;
-  margin-top: .3rem;
+#dashboard-empty-cell {
+  background: transparent;
+  border: 1px dashed #252525;
 }
 
-#ticker .label {
-  color: #555;
-  min-width: 3rem;
+#portfolio-balance-cell .value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #f0c040;
 }
 
-/* Settings */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  font-size: .82rem;
+  padding: .36rem .3rem;
+  border-bottom: 1px solid #242424;
+}
+
+.data-table th {
+  color: #8c8c8c;
+  font-weight: 600;
+}
+
+.data-table td {
+  color: #d0d0d0;
+}
+
+.data-table td.empty {
+  color: #707070;
+  font-style: italic;
+}
+
+.cell-error {
+  margin-top: .6rem;
+  font-size: .82rem;
+  color: #ff7272;
+}
+
 #settings form {
   display: flex;
   flex-direction: column;
@@ -202,34 +222,18 @@ section h2 {
 
 #settings button[type=submit]:hover { background: #ffd050; }
 
-/* Portfolio total */
-#portfolio .portfolio-total {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #f0c040;
+@media (max-width: 1200px) {
+  #dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-/* Balance & Orders */
-ul {
-  list-style: none;
+@media (max-width: 760px) {
+  #dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  section {
+    min-height: auto;
+  }
 }
-
-li {
-  padding: .35rem 0;
-  border-bottom: 1px solid #1f1f1f;
-  font-size: .9rem;
-  color: #ccc;
-}
-
-li:last-child { border-bottom: none; }
-
-li.empty { color: #555; font-style: italic; }
-
-/* Order list badges */
-.txid  { color: #555; font-family: monospace; font-size: .8rem; }
-.pair  { color: #aaa; font-weight: 600; }
-.side.buy  { color: #27ae60; font-weight: bold; }
-.side.sell { color: #e74c3c; font-weight: bold; }
-.otype { color: #888; }
-.oprice { color: #f0c040; }
-.vol   { color: #aaa; }
