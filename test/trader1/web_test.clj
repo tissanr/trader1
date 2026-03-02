@@ -4,8 +4,10 @@
             [org.httpkit.server :as httpkit]
             [trader1.auth :as auth]
             [trader1.kraken :as kraken]
+            [trader1.settings :as settings]
             [trader1.web :refer [broadcast! connected-channels
                                   login-page dashboard-page
+                                  settings-page settings-handler
                                   login-handler logout-handler
                                   websocket-handler app-routes
                                   start-broadcaster!]]))
@@ -34,8 +36,57 @@
       (is (.contains html "BTC / USD"))
       (is (.contains html "Account Balance"))
       (is (.contains html "Open Orders"))))
-  (testing "contains logout link"
-    (is (.contains (dashboard-page) "/logout"))))
+  (testing "contains settings and logout links"
+    (let [html (dashboard-page)]
+      (is (.contains html "/settings"))
+      (is (.contains html "/logout")))))
+
+;; --- settings-page ---
+
+(deftest settings-page-test
+  (testing "renders all three interval selects"
+    (let [html (settings-page)]
+      (is (.contains html "Ticker"))
+      (is (.contains html "Balance"))
+      (is (.contains html "Orders"))
+      (is (.contains html "ticker-ms"))
+      (is (.contains html "balance-ms"))
+      (is (.contains html "orders-ms"))))
+  (testing "reflects current settings as selected options"
+    (reset! settings/settings {:ticker-ms 300000 :balance-ms nil :orders-ms 15000})
+    (try
+      (let [html (settings-page)]
+        (is (.contains html "Manual"))
+        (is (.contains html "5 minutes")))
+      (finally
+        (reset! settings/settings settings/defaults))))
+  (testing "contains save button and form action"
+    (let [html (settings-page)]
+      (is (.contains html "action=\"/settings\""))
+      (is (.contains html "Save")))))
+
+;; --- settings-handler ---
+
+(deftest settings-handler-test
+  (testing "saves parsed settings and redirects to /settings"
+    (let [saved (atom nil)]
+      (with-redefs [settings/save! (fn [s] (reset! saved s))]
+        (let [resp (settings-handler {:params {:ticker-ms  "5000"
+                                               :balance-ms "300000"
+                                               :orders-ms  "manual"}})]
+          (is (= 302 (:status resp)))
+          (is (= "/settings" (get-in resp [:headers "Location"])))
+          (is (= {:ticker-ms 5000 :balance-ms 300000 :orders-ms nil} @saved))))))
+  (testing "handles all-manual settings"
+    (let [saved (atom nil)]
+      (with-redefs [settings/save! (fn [s] (reset! saved s))]
+        (settings-handler {:params {:ticker-ms "manual" :balance-ms "manual" :orders-ms "manual"}})
+        (is (= {:ticker-ms nil :balance-ms nil :orders-ms nil} @saved)))))
+  (testing "handles all numeric settings"
+    (let [saved (atom nil)]
+      (with-redefs [settings/save! (fn [s] (reset! saved s))]
+        (settings-handler {:params {:ticker-ms "600000" :balance-ms "600000" :orders-ms "600000"}})
+        (is (= {:ticker-ms 600000 :balance-ms 600000 :orders-ms 600000} @saved))))))
 
 ;; --- login-handler ---
 
@@ -111,6 +162,18 @@
       (is (= 302 (:status resp)))
       (is (= "/login" (get-in resp [:headers "Location"])))
       (is (nil? (:session resp)))))
+  (testing "GET /settings without auth redirects to /login"
+    (let [resp (app-routes (assoc base-req :request-method :get :uri "/settings"))]
+      (is (= 302 (:status resp)))
+      (is (= "/login" (get-in resp [:headers "Location"])))))
+  (testing "GET /settings with auth returns settings page"
+    (let [resp (app-routes (assoc base-req :request-method :get :uri "/settings"
+                                  :session {:identity "admin"}))]
+      (is (= 200 (:status resp)))
+      (is (.contains (:body resp) "Polling Intervals"))))
+  (testing "POST /settings without auth returns 401"
+    (let [resp (app-routes (assoc base-req :request-method :post :uri "/settings"))]
+      (is (= 401 (:status resp)))))
   (testing "GET /ws without auth returns 401"
     (let [resp (app-routes (assoc base-req :request-method :get :uri "/ws"))]
       (is (= 401 (:status resp)))))
@@ -169,6 +232,7 @@
           all-done        (promise)
           fake-ch         (Object.)]
       (reset! connected-channels #{fake-ch})
+      (reset! settings/settings settings/defaults)
       (try
         (with-redefs [kraken/asset-usd-pairs     (fn [] {"XXBT" {:altname "XBTUSD" :canonical "XXBTZUSD"}})
                       kraken/request-ticker      (fn [_] {:XXBTZUSD {:c ["50000" "1"]}})
@@ -182,7 +246,8 @@
           (is (= true (deref all-done 1000 :timeout)))
           (is (= #{"ticker" "balance" "orders" "portfolio-value"} @broadcast-types)))
         (finally
-          (reset! connected-channels #{}))))))
+          (reset! connected-channels #{})
+          (reset! settings/settings settings/defaults))))))
 
 (deftest start-broadcaster-payload-structure-test
   (testing "ticker broadcast wraps the kraken result under :data with type \"ticker\""
@@ -190,6 +255,7 @@
           received-ticker (promise)
           fake-ch         (Object.)]
       (reset! connected-channels #{fake-ch})
+      (reset! settings/settings settings/defaults)
       (try
         (with-redefs [kraken/asset-usd-pairs     (fn [] {})
                       kraken/request-ticker      (fn [_] ticker-data)
@@ -203,7 +269,8 @@
             (is (some? result))
             (is (= {:type "ticker" :data ticker-data} result))))
         (finally
-          (reset! connected-channels #{}))))))
+          (reset! connected-channels #{})
+          (reset! settings/settings settings/defaults))))))
 
 (deftest start-broadcaster-fetch-exception-test
   (testing "exception thrown by a fetcher is swallowed; other types still broadcast"
@@ -211,6 +278,7 @@
           done       (promise)
           fake-ch    (Object.)]
       (reset! connected-channels #{fake-ch})
+      (reset! settings/settings settings/defaults)
       (try
         (with-redefs [kraken/asset-usd-pairs     (fn [] {"XXBT" {:altname "XBTUSD" :canonical "XXBTZUSD"}})
                       kraken/request-ticker      (fn [_] (throw (Exception. "ticker API down")))
@@ -227,13 +295,15 @@
           (is (some    #(= "balance" (:type %)) @broadcasts))
           (is (some    #(= "orders"  (:type %)) @broadcasts)))
         (finally
-          (reset! connected-channels #{}))))))
+          (reset! connected-channels #{})
+          (reset! settings/settings settings/defaults))))))
 
 (deftest start-broadcaster-portfolio-value-test
   (testing "broadcasts portfolio-value with computed total_usd"
     (let [portfolio-payload (promise)
           fake-ch           (Object.)]
       (reset! connected-channels #{fake-ch})
+      (reset! settings/settings settings/defaults)
       (try
         (with-redefs [kraken/asset-usd-pairs     (fn [] {"XXBT" {:altname "XBTUSD" :canonical "XXBTZUSD"}})
                       kraken/request-balance     (fn [] {"XXBT" "0.5" "ZUSD" "10000.0"})
@@ -247,4 +317,23 @@
             (is (some? result))
             (is (= "35000.00" (get-in result [:data :total_usd])))))
         (finally
-          (reset! connected-channels #{}))))))
+          (reset! connected-channels #{})
+          (reset! settings/settings settings/defaults))))))
+
+(deftest start-broadcaster-manual-interval-test
+  (testing "does not auto-fetch ticker when ticker-ms is nil"
+    (let [ticker-called (promise)
+          fake-ch       (Object.)]
+      (reset! connected-channels #{fake-ch})
+      (reset! settings/settings {:ticker-ms nil :balance-ms 30000 :orders-ms 15000})
+      (try
+        (with-redefs [kraken/asset-usd-pairs     (fn [] {})
+                      kraken/request-ticker      (fn [_] (deliver ticker-called true) {})
+                      kraken/request-balance     (fn [] {})
+                      kraken/request-open-orders (fn [] {:open {}})
+                      broadcast! (fn [_] nil)]
+          (start-broadcaster!)
+          (is (= :not-called (deref ticker-called 500 :not-called))))
+        (finally
+          (reset! connected-channels #{})
+          (reset! settings/settings settings/defaults))))))

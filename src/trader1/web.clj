@@ -9,7 +9,8 @@
             [cheshire.core :as json]
             [org.httpkit.server :as httpkit]
             [trader1.auth :as auth]
-            [trader1.kraken :as kraken]))
+            [trader1.kraken :as kraken]
+            [trader1.settings :as settings]))
 
 ;; --- WebSocket channel registry ---
 
@@ -57,7 +58,9 @@
     [:body
      [:header
       [:h1 "Trader1"]
-      [:a {:href "/logout"} "Logout"]]
+      [:nav
+       [:a {:href "/settings"} "Settings"]
+       [:a {:href "/logout"} "Logout"]]]
      [:main
       [:section#portfolio
        [:h2 "Total Portfolio Value"]
@@ -78,6 +81,53 @@
        [:ul#orders-list [:li "Connecting..."]]]]
      (include-js "/app.js")]))
 
+(defn- interval-option [name-attr current-ms value-ms label]
+  [:option {:value (if (nil? value-ms) "manual" (str value-ms))
+            :selected (when (= current-ms value-ms) "selected")}
+   label])
+
+(defn settings-page []
+  (let [cfg @settings/settings]
+    (html5
+      [:head
+       [:meta {:charset "utf-8"}]
+       [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+       [:title "Trader1 — Settings"]
+       (include-css "/style.css")]
+      [:body
+       [:header
+        [:h1 "Trader1"]
+        [:nav
+         [:a {:href "/dashboard"} "Dashboard"]
+         [:a {:href "/logout"} "Logout"]]]
+       [:main
+        [:section#settings
+         [:h2 "Polling Intervals"]
+         [:form {:method "post" :action "/settings"}
+          (anti-forgery-field)
+          [:div.setting-row
+           [:label "Ticker"]
+           [:select {:name "ticker-ms"}
+            (interval-option "ticker-ms" (:ticker-ms cfg) 5000    "5 seconds (default)")
+            (interval-option "ticker-ms" (:ticker-ms cfg) 300000  "5 minutes")
+            (interval-option "ticker-ms" (:ticker-ms cfg) 600000  "10 minutes")
+            (interval-option "ticker-ms" (:ticker-ms cfg) nil     "Manual")]]
+          [:div.setting-row
+           [:label "Balance"]
+           [:select {:name "balance-ms"}
+            (interval-option "balance-ms" (:balance-ms cfg) 30000   "30 seconds (default)")
+            (interval-option "balance-ms" (:balance-ms cfg) 300000  "5 minutes")
+            (interval-option "balance-ms" (:balance-ms cfg) 600000  "10 minutes")
+            (interval-option "balance-ms" (:balance-ms cfg) nil     "Manual")]]
+          [:div.setting-row
+           [:label "Orders"]
+           [:select {:name "orders-ms"}
+            (interval-option "orders-ms" (:orders-ms cfg) 15000   "15 seconds (default)")
+            (interval-option "orders-ms" (:orders-ms cfg) 300000  "5 minutes")
+            (interval-option "orders-ms" (:orders-ms cfg) 600000  "10 minutes")
+            (interval-option "orders-ms" (:orders-ms cfg) nil     "Manual")]]
+          [:button {:type "submit"} "Save"]]]]])))
+
 ;; --- Route handlers ---
 
 (defn login-handler [request]
@@ -90,6 +140,17 @@
 (defn logout-handler [_]
   (-> (resp/redirect "/login")
       (assoc :session nil)))
+
+(defn- parse-interval [s]
+  (when (not= s "manual")
+    (Long/parseLong s)))
+
+(defn settings-handler [request]
+  (let [{:keys [ticker-ms balance-ms orders-ms]} (:params request)]
+    (settings/save! {:ticker-ms  (parse-interval ticker-ms)
+                     :balance-ms (parse-interval balance-ms)
+                     :orders-ms  (parse-interval orders-ms)})
+    (resp/redirect "/settings")))
 
 (defn websocket-handler [request]
   (if (get-in request [:session :identity])
@@ -107,6 +168,12 @@
   (GET  "/dashboard" req (if (get-in req [:session :identity])
                            (html-response (dashboard-page))
                            (resp/redirect "/login")))
+  (GET  "/settings"  req (if (get-in req [:session :identity])
+                           (html-response (settings-page))
+                           (resp/redirect "/login")))
+  (POST "/settings"  req (if (get-in req [:session :identity])
+                           (settings-handler req)
+                           {:status 401 :body "Unauthorized"}))
   (GET  "/ws"        req (websocket-handler req))
   (route/resources "/")
   (route/not-found "Not found"))
@@ -138,9 +205,10 @@
 
 (defn start-broadcaster!
   "Spawns a background thread that pushes live data to all WebSocket clients.
-  Ticker: every 5s. Orders: every 15s. Balance: every 30s."
+  Intervals are read from the settings atom each loop; nil means manual (no auto-fetch)."
   []
-  (let [last-balance (atom 0)
+  (let [last-ticker  (atom 0)
+        last-balance (atom 0)
         last-orders  (atom 0)
         usd-pairs    (atom nil)]
     (future
@@ -149,13 +217,16 @@
           (when (seq @connected-channels)
             (when (nil? @usd-pairs)
               (reset! usd-pairs (fetch-with-fallback kraken/asset-usd-pairs)))
-            (let [now     (System/currentTimeMillis)
-                  balance (when (> (- now @last-balance) 30000)
-                            (let [b (fetch-with-fallback kraken/request-balance)]
-                              (reset! last-balance now) b))
-                  orders  (when (> (- now @last-orders) 15000)
-                            (let [o (fetch-with-fallback kraken/request-open-orders)]
-                              (reset! last-orders now) o))
+            (let [now (System/currentTimeMillis)
+                  cfg @settings/settings
+                  balance (when-let [ms (:balance-ms cfg)]
+                            (when (> (- now @last-balance) ms)
+                              (let [b (fetch-with-fallback kraken/request-balance)]
+                                (reset! last-balance now) b)))
+                  orders  (when-let [ms (:orders-ms cfg)]
+                            (when (> (- now @last-orders) ms)
+                              (let [o (fetch-with-fallback kraken/request-open-orders)]
+                                (reset! last-orders now) o)))
                   ticker-pairs (if (and balance @usd-pairs)
                                  (->> balance
                                       (remove (fn [[k _]] (= (name k) "ZUSD")))
@@ -164,7 +235,10 @@
                                       (into ["XBTUSD"])
                                       distinct vec)
                                  ["XBTUSD"])
-                  ticker        (fetch-with-fallback #(kraken/request-ticker ticker-pairs))
+                  ticker  (when-let [ms (:ticker-ms cfg)]
+                            (when (> (- now @last-ticker) ms)
+                              (let [t (fetch-with-fallback #(kraken/request-ticker ticker-pairs))]
+                                (reset! last-ticker now) t)))
                   portfolio-usd (compute-portfolio-usd balance @usd-pairs ticker)]
               (when ticker        (broadcast! {:type "ticker"          :data ticker}))
               (when balance       (broadcast! {:type "balance"         :data balance}))
@@ -177,8 +251,9 @@
         (recur)))))
 
 (defn start-server!
-  "Starts the background broadcaster and the http-kit web server on port.
+  "Loads settings, starts the background broadcaster, and starts the http-kit web server.
   Returns the stop function (call it to shut down)."
   [port]
+  (settings/load!)
   (start-broadcaster!)
   (httpkit/run-server app {:port port}))
