@@ -30,6 +30,7 @@
   (testing "contains all dashboard sections"
     (let [html (dashboard-page)]
       (is (.contains html "Trader1"))
+      (is (.contains html "Total Portfolio Value"))
       (is (.contains html "BTC / USD"))
       (is (.contains html "Account Balance"))
       (is (.contains html "Open Orders"))))
@@ -163,22 +164,23 @@
           (reset! connected-channels #{}))))))
 
 (deftest start-broadcaster-all-types-test
-  (testing "broadcasts ticker, balance and orders on the first iteration"
+  (testing "broadcasts ticker, balance, orders and portfolio-value on the first iteration"
     (let [broadcast-types (atom #{})
           all-done        (promise)
           fake-ch         (Object.)]
       (reset! connected-channels #{fake-ch})
       (try
-        (with-redefs [kraken/request-ticker      (fn [_] {:XBTUSD {:a ["50000"]}})
+        (with-redefs [kraken/asset-usd-pairs     (fn [] {"XXBT" {:altname "XBTUSD" :canonical "XXBTZUSD"}})
+                      kraken/request-ticker      (fn [_] {:XXBTZUSD {:c ["50000" "1"]}})
                       kraken/request-balance     (fn [] {"XXBT" "1.5"})
                       kraken/request-open-orders (fn [] {:open {}})
                       broadcast! (fn [payload]
                                    (swap! broadcast-types conj (:type payload))
-                                   (when (= 3 (count @broadcast-types))
+                                   (when (= 4 (count @broadcast-types))
                                      (deliver all-done true)))]
           (start-broadcaster!)
           (is (= true (deref all-done 1000 :timeout)))
-          (is (= #{"ticker" "balance" "orders"} @broadcast-types)))
+          (is (= #{"ticker" "balance" "orders" "portfolio-value"} @broadcast-types)))
         (finally
           (reset! connected-channels #{}))))))
 
@@ -189,7 +191,8 @@
           fake-ch         (Object.)]
       (reset! connected-channels #{fake-ch})
       (try
-        (with-redefs [kraken/request-ticker      (fn [_] ticker-data)
+        (with-redefs [kraken/asset-usd-pairs     (fn [] {})
+                      kraken/request-ticker      (fn [_] ticker-data)
                       kraken/request-balance     (fn [] {})
                       kraken/request-open-orders (fn [] {})
                       broadcast! (fn [payload]
@@ -209,7 +212,8 @@
           fake-ch    (Object.)]
       (reset! connected-channels #{fake-ch})
       (try
-        (with-redefs [kraken/request-ticker      (fn [_] (throw (Exception. "ticker API down")))
+        (with-redefs [kraken/asset-usd-pairs     (fn [] {"XXBT" {:altname "XBTUSD" :canonical "XXBTZUSD"}})
+                      kraken/request-ticker      (fn [_] (throw (Exception. "ticker API down")))
                       kraken/request-balance     (fn [] {"XXBT" "1.0"})
                       kraken/request-open-orders (fn [] {:open {}})
                       broadcast! (fn [payload]
@@ -219,7 +223,28 @@
           (start-broadcaster!)
           (is (= true (deref done 1000 :timeout)))
           (is (not-any? #(= "ticker" (:type %)) @broadcasts))
+          (is (not-any? #(= "portfolio-value" (:type %)) @broadcasts))
           (is (some    #(= "balance" (:type %)) @broadcasts))
           (is (some    #(= "orders"  (:type %)) @broadcasts)))
+        (finally
+          (reset! connected-channels #{}))))))
+
+(deftest start-broadcaster-portfolio-value-test
+  (testing "broadcasts portfolio-value with computed total_usd"
+    (let [portfolio-payload (promise)
+          fake-ch           (Object.)]
+      (reset! connected-channels #{fake-ch})
+      (try
+        (with-redefs [kraken/asset-usd-pairs     (fn [] {"XXBT" {:altname "XBTUSD" :canonical "XXBTZUSD"}})
+                      kraken/request-balance     (fn [] {"XXBT" "0.5" "ZUSD" "10000.0"})
+                      kraken/request-open-orders (fn [] {:open {}})
+                      kraken/request-ticker      (fn [_] {:XXBTZUSD {:c ["50000.00" "1"]}})
+                      broadcast! (fn [payload]
+                                   (when (= "portfolio-value" (:type payload))
+                                     (deliver portfolio-payload payload)))]
+          (start-broadcaster!)
+          (let [result (deref portfolio-payload 1000 nil)]
+            (is (some? result))
+            (is (= "35000.00" (get-in result [:data :total_usd])))))
         (finally
           (reset! connected-channels #{}))))))

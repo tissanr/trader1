@@ -148,6 +148,13 @@ section h2 {
   min-width: 3rem;
 }
 
+/* Portfolio total */
+#portfolio .portfolio-total {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #f0c040;
+}
+
 /* Balance & Orders */
 ul {
   list-style: none;

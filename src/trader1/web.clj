@@ -59,6 +59,9 @@
       [:h1 "Trader1"]
       [:a {:href "/logout"} "Logout"]]
      [:main
+      [:section#portfolio
+       [:h2 "Total Portfolio Value"]
+       [:p.portfolio-total [:span#portfolio-total "--"] " USD"]]
       [:section#ticker
        [:h2 "BTC / USD"]
        [:p.price [:span#ticker-last "--"]]
@@ -116,29 +119,58 @@
 (defn- fetch-with-fallback [f]
   (try (f) (catch Exception _ nil)))
 
+(defn- compute-portfolio-usd [balance usd-pairs ticker]
+  (when (and balance usd-pairs ticker)
+    (reduce (fn [total [k v]]
+              (let [asset  (name k)
+                    amount (Double/parseDouble v)]
+                (if (zero? amount)
+                  total
+                  (if (= asset "ZUSD")
+                    (+ total amount)
+                    (if-let [{:keys [canonical]} (get usd-pairs asset)]
+                      (if-let [pair-data (get ticker (keyword canonical))]
+                        (+ total (* amount (Double/parseDouble (first (:c pair-data)))))
+                        total)
+                      total)))))
+            0.0
+            balance)))
+
 (defn start-broadcaster!
   "Spawns a background thread that pushes live data to all WebSocket clients.
   Ticker: every 5s. Orders: every 15s. Balance: every 30s."
   []
   (let [last-balance (atom 0)
-        last-orders  (atom 0)]
+        last-orders  (atom 0)
+        usd-pairs    (atom nil)]
     (future
       (loop []
         (try
           (when (seq @connected-channels)
-            (let [now (System/currentTimeMillis)
-                  ticker  (fetch-with-fallback #(kraken/request-ticker ["XBTUSD"]))
+            (when (nil? @usd-pairs)
+              (reset! usd-pairs (fetch-with-fallback kraken/asset-usd-pairs)))
+            (let [now     (System/currentTimeMillis)
                   balance (when (> (- now @last-balance) 30000)
                             (let [b (fetch-with-fallback kraken/request-balance)]
-                              (reset! last-balance now)
-                              b))
+                              (reset! last-balance now) b))
                   orders  (when (> (- now @last-orders) 15000)
                             (let [o (fetch-with-fallback kraken/request-open-orders)]
-                              (reset! last-orders now)
-                              o))]
-              (when ticker  (broadcast! {:type "ticker"  :data ticker}))
-              (when balance (broadcast! {:type "balance" :data balance}))
-              (when orders  (broadcast! {:type "orders"  :data orders}))))
+                              (reset! last-orders now) o))
+                  ticker-pairs (if (and balance @usd-pairs)
+                                 (->> balance
+                                      (remove (fn [[k _]] (= (name k) "ZUSD")))
+                                      (filter (fn [[_ v]] (pos? (Double/parseDouble v))))
+                                      (keep   (fn [[k _]] (get-in @usd-pairs [(name k) :altname])))
+                                      (into ["XBTUSD"])
+                                      distinct vec)
+                                 ["XBTUSD"])
+                  ticker        (fetch-with-fallback #(kraken/request-ticker ticker-pairs))
+                  portfolio-usd (compute-portfolio-usd balance @usd-pairs ticker)]
+              (when ticker        (broadcast! {:type "ticker"          :data ticker}))
+              (when balance       (broadcast! {:type "balance"         :data balance}))
+              (when orders        (broadcast! {:type "orders"          :data orders}))
+              (when portfolio-usd (broadcast! {:type "portfolio-value"
+                                               :data {:total_usd (format "%.2f" portfolio-usd)}}))))
           (catch Exception e
             (println "Broadcaster error:" (.getMessage e))))
         (Thread/sleep 5000)

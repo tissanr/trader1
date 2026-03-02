@@ -18,9 +18,10 @@
       catch (e) { console.error("[trader1] Bad JSON:", e); return; }
 
       switch (msg.type) {
-        case "ticker":  updateTicker(msg.data);  break;
-        case "balance": updateBalance(msg.data); break;
-        case "orders":  updateOrders(msg.data);  break;
+        case "ticker":          updateTicker(msg.data);         break;
+        case "balance":         updateBalance(msg.data);        break;
+        case "orders":          updateOrders(msg.data);         break;
+        case "portfolio-value": updatePortfolioValue(msg.data); break;
         default: console.warn("[trader1] Unknown message type:", msg.type);
       }
     };
@@ -89,6 +90,13 @@
         "vol <span class='vol'>" + (order.vol || "") + "</span>";
       ul.appendChild(li);
     });
+  }
+
+  function updatePortfolioValue(data) {
+    if (!data || data.total_usd == null) return;
+    var val = parseFloat(data.total_usd);
+    setText("portfolio-total",
+      "$\u202f" + val.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2}));
   }
 
   function setText(id, value) {

@@ -7,7 +7,8 @@
                                     request-symbol-pairs
                                     request-ticker
                                     request-balance
-                                    request-open-orders]]))
+                                    request-open-orders
+                                    asset-usd-pairs]]))
 
 ;; private-api-sign calls Base64/getDecoder on the secret, so it must be valid base64
 (def ^:private fake-creds {:key "fake-api-key" :secret "dGVzdGtleQ=="})
@@ -119,3 +120,26 @@
     (with-redefs [security/read-in-security-pair (fn [] fake-creds)
                   core/post-form-path (fn [_ _ _] {:body {:error ["EAPI:Invalid key"] :result nil}})]
       (is (thrown? Exception (request-open-orders))))))
+
+(deftest asset-usd-pairs-test
+  (testing "maps base asset code to altname and canonical pair name"
+    (with-redefs [core/get-path
+                  (fn [_ _]
+                    {:body {:error []
+                            :result {:XXBTZUSD {:altname "XBTUSD"
+                                               :base    "XXBT"
+                                               :quote   "ZUSD"}
+                                     :XETHZUSD {:altname "ETHUSD"
+                                               :base    "XETH"
+                                               :quote   "ZUSD"}
+                                     :XXBTZEUR {:altname "XBTEUR"
+                                               :base    "XXBT"
+                                               :quote   "ZEUR"}}}})]
+      (let [result (asset-usd-pairs)]
+        (is (= 2 (count result)))
+        (is (= {:altname "XBTUSD" :canonical "XXBTZUSD"} (get result "XXBT")))
+        (is (= {:altname "ETHUSD" :canonical "XETHZUSD"} (get result "XETH")))
+        (is (nil? (get result "ZEUR")) "non-ZUSD-quote pairs should be excluded"))))
+  (testing "throws on API error"
+    (with-redefs [core/get-path (fn [_ _] {:body {:error ["EAPI:Invalid"] :result nil}})]
+      (is (thrown? Exception (asset-usd-pairs))))))
