@@ -125,4 +125,13 @@
     (core/throw-if-err reply)
     (get reply :result)))
 
-
+(defn asset-usd-pairs
+  "Returns a map from Kraken asset code (string) to USD pair info.
+   E.g. {\"XXBT\" {:altname \"XBTUSD\" :canonical \"XXBTZUSD\"} …}"
+  []
+  (->> (request-symbol-pairs)
+       (filter (fn [[_ v]] (= "ZUSD" (:quote v))))
+       (map (fn [[k v]] [(name (:base v))
+                         {:altname   (:altname v)
+                          :canonical (name k)}]))
+       (into {})))

@@ -1,0 +1,5 @@
+;; Copy this file to config/settings.edn to override defaults.
+;; Use nil for any interval to disable auto-refresh (manual mode).
+{:ticker-ms  5000
+ :balance-ms 30000
+ :orders-ms  15000}

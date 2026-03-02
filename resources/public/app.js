@@ -8,7 +8,6 @@
     ws = new WebSocket(proto + "//" + location.host + "/ws");
 
     ws.onopen = function () {
-      console.log("[trader1] WebSocket connected");
       document.body.classList.remove("disconnected");
     };
 
@@ -18,77 +17,122 @@
       catch (e) { console.error("[trader1] Bad JSON:", e); return; }
 
       switch (msg.type) {
-        case "ticker":  updateTicker(msg.data);  break;
-        case "balance": updateBalance(msg.data); break;
-        case "orders":  updateOrders(msg.data);  break;
-        default: console.warn("[trader1] Unknown message type:", msg.type);
+        case "connection":
+          updateConnection(msg.data);
+          break;
+        case "portfolio-balance":
+          updatePortfolioBalance(msg.data);
+          break;
+        case "positions":
+          updatePositions(msg.data);
+          break;
+        case "orders":
+          updateOrders(msg.data);
+          break;
+        case "cell-error":
+          updateCellError(msg.data);
+          break;
+        case "ib-error":
+          console.error("[trader1] IB Error:", msg.data && msg.data.message);
+          break;
+        default:
+          console.warn("[trader1] Unknown message type:", msg.type);
       }
     };
 
     ws.onclose = function () {
-      console.log("[trader1] WebSocket closed, reconnecting in 5s...");
       document.body.classList.add("disconnected");
       setTimeout(connect, 5000);
     };
 
-    ws.onerror = function (err) {
-      console.error("[trader1] WebSocket error:", err);
+    ws.onerror = function () {
       ws.close();
     };
   }
 
-  // Kraken ticker result:
-  // { "XXBTZUSD": { "a":["ask","lot","lotWhole"], "b":["bid",...],
-  //                 "c":["lastPrice","lot"], "v":["today","24h"], ... } }
-  function updateTicker(data) {
-    if (!data) return;
-    var pair = data["XXBTZUSD"] || data[Object.keys(data)[0]];
-    if (!pair) return;
-    setText("ticker-last", pair.c && pair.c[0]);
-    setText("ticker-ask",  pair.a && pair.a[0]);
-    setText("ticker-bid",  pair.b && pair.b[0]);
-    setText("ticker-vol",  pair.v && pair.v[1]);
-  }
-
-  // Kraken balance result: { "ZUSD": "12345.00", "XXBT": "0.5000", ... }
-  function updateBalance(data) {
-    if (!data) return;
-    var ul = document.getElementById("balance-list");
-    ul.innerHTML = "";
-    Object.keys(data).forEach(function (asset) {
-      var li = document.createElement("li");
-      li.textContent = asset + ": " + data[asset];
-      ul.appendChild(li);
-    });
-  }
-
-  // Kraken open-orders result:
-  // { "open": { "<txid>": { "descr": { "pair":"XBTUSD","type":"buy",
-  //                                    "ordertype":"limit","price":"30000" },
-  //                         "vol":"0.01", "status":"open" } } }
-  function updateOrders(data) {
-    if (!data) return;
-    var ul = document.getElementById("orders-list");
-    ul.innerHTML = "";
-    var open = (data.open) || {};
-    var txids = Object.keys(open);
-    if (txids.length === 0) {
-      ul.innerHTML = "<li class='empty'>No open orders</li>";
+  function updateConnection(data) {
+    if (!data || !data.status) return;
+    if (data.status === "connected") {
+      document.body.classList.remove("disconnected");
       return;
     }
-    txids.forEach(function (txid) {
-      var order = open[txid];
-      var d = order.descr || {};
-      var li = document.createElement("li");
-      li.innerHTML =
-        "<span class='txid'>" + txid.slice(0, 8) + "&hellip;</span> " +
-        "<span class='pair'>"  + (d.pair      || "") + "</span> " +
-        "<span class='side "   + (d.type || "") + "'>" + (d.type || "") + "</span> " +
-        "<span class='otype'>" + (d.ordertype || "") + "</span> " +
-        "@ <span class='oprice'>" + (d.price || "") + "</span> " +
-        "vol <span class='vol'>" + (order.vol || "") + "</span>";
-      ul.appendChild(li);
+    document.body.classList.add("disconnected");
+  }
+
+  function updateCellError(data) {
+    if (!data || !data.cell) return;
+    var id = data.cell + "-error";
+    var el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement("p");
+      el.className = "cell-error";
+      el.id = id;
+      var cell = document.getElementById(data.cell + "-cell") || document.getElementById("portfolio-balance-cell");
+      if (cell) cell.appendChild(el);
+    }
+    el.textContent = data.message || "";
+    el.style.display = data.message ? "block" : "none";
+  }
+
+  function updatePortfolioBalance(data) {
+    if (!data || data.value == null) return;
+    var currency = data.currency || "USD";
+    var value = parseFloat(data.value);
+    var formatted = isNaN(value)
+      ? String(data.value)
+      : value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    setText("portfolio-balance-value", formatted + " " + currency);
+  }
+
+  function updatePositions(rows) {
+    var body = document.getElementById("positions-body");
+    if (!body) return;
+    body.innerHTML = "";
+
+    if (!rows || rows.length === 0) {
+      body.innerHTML = "<tr><td colspan='5' class='empty'>No positions</td></tr>";
+      return;
+    }
+
+    rows.forEach(function (row) {
+      var tr = document.createElement("tr");
+      appendCell(tr, row.symbol);
+      appendCell(tr, row["sec-type"]);
+      appendCell(tr, row.currency);
+      appendCell(tr, row.position);
+      appendCell(tr, row["avg-cost"]);
+      body.appendChild(tr);
     });
+  }
+
+  function updateOrders(rows) {
+    var body = document.getElementById("orders-body");
+    if (!body) return;
+    body.innerHTML = "";
+
+    if (!rows || rows.length === 0) {
+      body.innerHTML = "<tr><td colspan='8' class='empty'>No open orders</td></tr>";
+      return;
+    }
+
+    rows.forEach(function (row) {
+      var tr = document.createElement("tr");
+      appendCell(tr, row.symbol);
+      appendCell(tr, row.action);
+      appendCell(tr, row["order-type"]);
+      appendCell(tr, row.quantity);
+      appendCell(tr, row["limit-price"] == null ? "--" : row["limit-price"]);
+      appendCell(tr, row.status || "--");
+      appendCell(tr, row.filled == null ? "--" : row.filled);
+      appendCell(tr, row.remaining == null ? "--" : row.remaining);
+      body.appendChild(tr);
+    });
+  }
+
+  function appendCell(tr, value) {
+    var td = document.createElement("td");
+    td.textContent = value == null ? "--" : String(value);
+    tr.appendChild(td);
   }
 
   function setText(id, value) {
