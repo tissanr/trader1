@@ -150,7 +150,7 @@
     (settings/save! {:ticker-ms  (parse-interval ticker-ms)
                      :balance-ms (parse-interval balance-ms)
                      :orders-ms  (parse-interval orders-ms)})
-    (resp/redirect "/settings")))
+    (resp/redirect "/dashboard")))
 
 (defn websocket-handler [request]
   (if (get-in request [:session :identity])

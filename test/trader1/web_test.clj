@@ -75,7 +75,7 @@
                                                :balance-ms "300000"
                                                :orders-ms  "manual"}})]
           (is (= 302 (:status resp)))
-          (is (= "/settings" (get-in resp [:headers "Location"])))
+          (is (= "/dashboard" (get-in resp [:headers "Location"])))
           (is (= {:ticker-ms 5000 :balance-ms 300000 :orders-ms nil} @saved))))))
   (testing "handles all-manual settings"
     (let [saved (atom nil)]
