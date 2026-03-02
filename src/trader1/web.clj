@@ -14,6 +14,7 @@
             [ib.open-orders :as ib.orders]
             [ib.positions :as ib.positions]
             [trader1.auth :as auth]
+            [trader1.kraken :as kraken]
             [trader1.settings :as settings]))
 
 (def refresh-ms 10000)
@@ -25,6 +26,10 @@
   (atom {:balance nil
          :positions []
          :orders []
+         :kraken-balance nil
+         :kraken-orders nil
+         :kraken-portfolio-value nil
+         :kraken-ticker nil
          :errors {:balance nil :positions nil :orders nil}
          :connection :disconnected}))
 (defonce last-order-status (atom {}))
@@ -113,9 +118,18 @@
      :avg-cost (or avg-cost "--")}))
 
 (defn- push-state-to-client! [ch]
-  (let [{:keys [balance positions orders errors connection]} @ui-state]
+  (let [{:keys [balance positions orders errors connection
+                kraken-balance kraken-orders kraken-portfolio-value kraken-ticker]} @ui-state]
     (httpkit/send! ch (json/generate-string {:type "connection"
                                              :data {:status (name connection)}}))
+    (httpkit/send! ch (json/generate-string {:type "kraken-balance"
+                                             :data kraken-balance}))
+    (httpkit/send! ch (json/generate-string {:type "kraken-orders"
+                                             :data kraken-orders}))
+    (httpkit/send! ch (json/generate-string {:type "kraken-portfolio-value"
+                                             :data kraken-portfolio-value}))
+    (httpkit/send! ch (json/generate-string {:type "kraken-ticker"
+                                             :data kraken-ticker}))
     (httpkit/send! ch (json/generate-string {:type "portfolio-balance"
                                              :data balance}))
     (httpkit/send! ch (json/generate-string {:type "positions"
@@ -163,39 +177,55 @@
       [:nav
        [:a {:href "/settings"} "Settings"]
        [:a {:href "/logout"} "Logout"]]]
-     [:main#dashboard-grid
-      [:section#portfolio-balance-cell
-       [:h2 "Portfolio Balance (USD)"]
-       [:p.value#portfolio-balance-value "--"]]
-      [:section#dashboard-empty-cell {:aria-hidden "true"}
-       [:h2 ""]]
-      [:section#positions-cell
-       [:h2 "Positionen"]
-       [:table.data-table
-        [:thead
+     [:main
+      [:div#kraken-grid
+       [:section#kraken-portfolio-cell
+        [:h2 "Kraken Portfolio Value"]
+        [:p.value#kraken-portfolio-value "-- USD"]]
+       [:section#kraken-ticker-cell
+        [:h2 "Kraken Ticker (XBT/USD)"]
+        [:div.row [:span.label "Last"] [:span#kraken-ticker-last "--"]]
+        [:div.row [:span.label "Ask"]  [:span#kraken-ticker-ask "--"]]
+        [:div.row [:span.label "Bid"]  [:span#kraken-ticker-bid "--"]]]
+       [:section#kraken-balance-cell
+        [:h2 "Kraken Balance"]
+        [:ul#kraken-balance-list [:li "Connecting..."]]]
+       [:section#kraken-orders-cell
+        [:h2 "Kraken Open Orders"]
+        [:ul#kraken-orders-list [:li "Connecting..."]]]]
+      [:div#dashboard-grid
+       [:section#portfolio-balance-cell
+        [:h2 "Portfolio Balance (USD)"]
+        [:p.value#portfolio-balance-value "--"]]
+       [:section#dashboard-empty-cell {:aria-hidden "true"}
+        [:h2 ""]]
+       [:section#positions-cell
+        [:h2 "Positionen"]
+        [:table.data-table
+         [:thead
+          [:tr
+           [:th "Symbol"]
+           [:th "SecType"]
+           [:th "Currency"]
+           [:th "Position"]
+           [:th "AvgCost"]]]
+         [:tbody#positions-body
+          [:tr [:td {:colspan "5" :class "empty"} "Connecting..."]]]]]
+       [:section#orders-cell
+        [:h2 "Offene Orders"]
+        [:table.data-table
+         [:thead
          [:tr
-          [:th "Symbol"]
-          [:th "SecType"]
-          [:th "Currency"]
-          [:th "Position"]
-          [:th "AvgCost"]]]
-        [:tbody#positions-body
-         [:tr [:td {:colspan "5" :class "empty"} "Connecting..."]]]]]
-      [:section#orders-cell
-       [:h2 "Offene Orders"]
-       [:table.data-table
-        [:thead
-         [:tr
-          [:th "Symbol"]
-          [:th "Action"]
-          [:th "OrderType"]
-          [:th "Quantity"]
-          [:th "LimitPrice"]
-          [:th "Status"]
-          [:th "Filled"]
+           [:th "Symbol"]
+           [:th "Action"]
+           [:th "OrderType"]
+           [:th "Quantity"]
+           [:th "LimitPrice"]
+           [:th "Status"]
+           [:th "Filled"]
           [:th "Remaining"]]]
-        [:tbody#orders-body
-         [:tr [:td {:colspan "8" :class "empty"} "Connecting..."]]]]]]
+         [:tbody#orders-body
+          [:tr [:td {:colspan "8" :class "empty"} "Connecting..."]]]]]]]
      (include-js "/app.js")]))
 
 (defn- interval-option [name-attr current-ms value-ms label]
@@ -297,6 +327,29 @@
 (def app
   (wrap-defaults app-routes site-defaults))
 
+(defn- fetch-with-fallback [f]
+  (try
+    (f)
+    (catch Exception _
+      nil)))
+
+(defn- compute-kraken-portfolio-usd [balance usd-pairs ticker]
+  (when (and balance usd-pairs ticker)
+    (reduce (fn [total [k v]]
+              (let [asset  (name k)
+                    amount (Double/parseDouble v)]
+                (if (zero? amount)
+                  total
+                  (if (= asset "ZUSD")
+                    (+ total amount)
+                    (if-let [{:keys [canonical]} (get usd-pairs asset)]
+                      (if-let [pair-data (get ticker (keyword canonical))]
+                        (+ total (* amount (Double/parseDouble (first (:c pair-data)))))
+                        total)
+                      total)))))
+            0.0
+            balance)))
+
 (defn- start-event-forwarder! [conn events-ch stop-ch]
   (async/go-loop []
     (let [[evt port] (async/alts! [events-ch stop-ch])]
@@ -334,9 +387,56 @@
 (defn- start-snapshot-loop! [conn stop-ch]
   (let [balance-in-flight? (atom false)
         positions-in-flight? (atom false)
-        orders-in-flight? (atom false)]
+        orders-in-flight? (atom false)
+        kraken-usd-pairs (atom nil)
+        last-kraken-ticker (atom 0)
+        last-kraken-balance (atom 0)
+        last-kraken-orders (atom 0)]
     (async/go-loop []
       (when (seq @connected-channels)
+        (when (nil? @kraken-usd-pairs)
+          (reset! kraken-usd-pairs (fetch-with-fallback kraken/asset-usd-pairs)))
+
+        (let [now (System/currentTimeMillis)
+              cfg @settings/settings
+              kraken-balance (when-let [ms (:balance-ms cfg)]
+                               (when (> (- now @last-kraken-balance) ms)
+                                 (let [b (fetch-with-fallback kraken/request-balance)]
+                                   (reset! last-kraken-balance now)
+                                   b)))
+              kraken-orders (when-let [ms (:orders-ms cfg)]
+                              (when (> (- now @last-kraken-orders) ms)
+                                (let [o (fetch-with-fallback kraken/request-open-orders)]
+                                  (reset! last-kraken-orders now)
+                                  o)))
+              kraken-ticker-pairs (if (and kraken-balance @kraken-usd-pairs)
+                                    (->> kraken-balance
+                                         (remove (fn [[k _]] (= (name k) "ZUSD")))
+                                         (filter (fn [[_ v]] (pos? (Double/parseDouble v))))
+                                         (keep (fn [[k _]] (get-in @kraken-usd-pairs [(name k) :altname])))
+                                         (into ["XBTUSD"])
+                                         distinct vec)
+                                    ["XBTUSD"])
+              kraken-ticker (when-let [ms (:ticker-ms cfg)]
+                              (when (> (- now @last-kraken-ticker) ms)
+                                (let [t (fetch-with-fallback #(kraken/request-ticker kraken-ticker-pairs))]
+                                  (reset! last-kraken-ticker now)
+                                  t)))
+              kraken-portfolio-usd (compute-kraken-portfolio-usd kraken-balance @kraken-usd-pairs kraken-ticker)]
+          (when kraken-balance
+            (swap! ui-state assoc :kraken-balance kraken-balance)
+            (broadcast! {:type "kraken-balance" :data kraken-balance}))
+          (when kraken-orders
+            (swap! ui-state assoc :kraken-orders kraken-orders)
+            (broadcast! {:type "kraken-orders" :data kraken-orders}))
+          (when kraken-ticker
+            (swap! ui-state assoc :kraken-ticker kraken-ticker)
+            (broadcast! {:type "kraken-ticker" :data kraken-ticker}))
+          (when kraken-portfolio-usd
+            (let [payload {:total-usd (format "%.2f" kraken-portfolio-usd)}]
+              (swap! ui-state assoc :kraken-portfolio-value payload)
+              (broadcast! {:type "kraken-portfolio-value" :data payload}))))
+
         (when (compare-and-set! balance-in-flight? false true)
           (async/go
             (try

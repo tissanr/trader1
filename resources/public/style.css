@@ -111,6 +111,13 @@ header a:hover { color: #ccc; }
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+#kraken-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
   padding: 1.25rem;
 }
 
@@ -139,6 +146,43 @@ section h2 {
   font-size: 2rem;
   font-weight: bold;
   color: #f0c040;
+}
+
+#kraken-portfolio-cell .value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #f0c040;
+}
+
+#kraken-ticker-cell .row {
+  display: flex;
+  gap: .6rem;
+  margin-top: .3rem;
+}
+
+#kraken-ticker-cell .label {
+  color: #888;
+  min-width: 3rem;
+}
+
+ul {
+  list-style: none;
+}
+
+li {
+  padding: .35rem 0;
+  border-bottom: 1px solid #1f1f1f;
+  font-size: .88rem;
+  color: #ccc;
+}
+
+li:last-child {
+  border-bottom: none;
+}
+
+li.empty {
+  color: #707070;
+  font-style: italic;
 }
 
 .data-table {
@@ -223,12 +267,14 @@ section h2 {
 #settings button[type=submit]:hover { background: #ffd050; }
 
 @media (max-width: 1200px) {
+  #kraken-grid,
   #dashboard-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
+  #kraken-grid,
   #dashboard-grid {
     grid-template-columns: 1fr;
   }

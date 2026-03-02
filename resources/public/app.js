@@ -20,6 +20,18 @@
         case "connection":
           updateConnection(msg.data);
           break;
+        case "kraken-balance":
+          updateKrakenBalance(msg.data);
+          break;
+        case "kraken-orders":
+          updateKrakenOrders(msg.data);
+          break;
+        case "kraken-portfolio-value":
+          updateKrakenPortfolioValue(msg.data);
+          break;
+        case "kraken-ticker":
+          updateKrakenTicker(msg.data);
+          break;
         case "portfolio-balance":
           updatePortfolioBalance(msg.data);
           break;
@@ -82,6 +94,66 @@
       ? String(data.value)
       : value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     setText("portfolio-balance-value", formatted + " " + currency);
+  }
+
+  function updateKrakenPortfolioValue(data) {
+    if (!data || data["total-usd"] == null) return;
+    var value = parseFloat(data["total-usd"]);
+    var formatted = isNaN(value)
+      ? String(data["total-usd"])
+      : value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    setText("kraken-portfolio-value", formatted + " USD");
+  }
+
+  function updateKrakenTicker(data) {
+    if (!data) return;
+    var pair = data["XXBTZUSD"] || data["XBTUSD"] || data[Object.keys(data)[0]];
+    if (!pair) return;
+    setText("kraken-ticker-last", pair.c && pair.c[0]);
+    setText("kraken-ticker-ask", pair.a && pair.a[0]);
+    setText("kraken-ticker-bid", pair.b && pair.b[0]);
+  }
+
+  function updateKrakenBalance(data) {
+    if (!data) return;
+    var list = document.getElementById("kraken-balance-list");
+    if (!list) return;
+    list.innerHTML = "";
+    var assets = Object.keys(data);
+    if (assets.length === 0) {
+      list.innerHTML = "<li class='empty'>No balance data</li>";
+      return;
+    }
+    assets.forEach(function (asset) {
+      var li = document.createElement("li");
+      li.textContent = asset + ": " + data[asset];
+      list.appendChild(li);
+    });
+  }
+
+  function updateKrakenOrders(data) {
+    if (!data) return;
+    var list = document.getElementById("kraken-orders-list");
+    if (!list) return;
+    list.innerHTML = "";
+    var open = data.open || {};
+    var txids = Object.keys(open);
+    if (txids.length === 0) {
+      list.innerHTML = "<li class='empty'>No open orders</li>";
+      return;
+    }
+    txids.forEach(function (txid) {
+      var order = open[txid] || {};
+      var descr = order.descr || {};
+      var li = document.createElement("li");
+      li.textContent =
+        (descr.pair || "--") + " " +
+        (descr.type || "--") + " " +
+        (descr.ordertype || "--") + " @ " +
+        (descr.price || "--") + " vol " +
+        (order.vol || "--");
+      list.appendChild(li);
+    });
   }
 
   function updatePositions(rows) {
