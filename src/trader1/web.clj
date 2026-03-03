@@ -10,8 +10,10 @@
             [org.httpkit.server :as httpkit]
             [ib.account :as ib.account]
             [ib.client :as ib.client]
+            [ib.market-data :as ib.market-data]
             [ib.open-orders :as ib.orders]
             [ib.positions :as ib.positions]
+            [ring.middleware.anti-forgery :refer [*anti-forgery-token*]]
             [trader1.auth :as auth]
             [trader1.kraken :as kraken]
             [trader1.settings :as settings]))
@@ -66,7 +68,7 @@
 
 (defn- ib-config []
   {:host (or (System/getenv "IB_HOST") "127.0.0.1")
-   :port (parse-int (or (System/getenv "IB_PORT") "7497") 7497)
+   :port (parse-int (or (System/getenv "IB_PORT") "4002") 4002)
    :client-id 0
    :event-buffer-size 2048
    :overflow-strategy :sliding})
@@ -140,6 +142,13 @@
                                                :data {:cell (name cell)
                                                       :message message}})))))
 
+(defn- ib-json-response [body]
+  {:status 200
+   :headers {"Content-Type" "application/json; charset=utf-8"}
+   :body (json/generate-string body)})
+
+(defn- ib-conn [] (:conn @ib-runtime))
+
 (defn login-page [error-msg]
   (html5
     [:head
@@ -168,6 +177,7 @@
     [:head
      [:meta {:charset "utf-8"}]
      [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+     [:meta {:name "csrf-token" :content (force *anti-forgery-token*)}]
      [:title "Trader1 - Dashboard"]
      (include-css "/style.css")]
     [:body
@@ -224,7 +234,23 @@
            [:th "Filled"]
           [:th "Remaining"]]]
          [:tbody#orders-body
-          [:tr [:td {:colspan "8" :class "empty"} "Connecting..."]]]]]]]
+          [:tr [:td {:colspan "8" :class "empty"} "Connecting..."]]]]]]
+      [:section#ib-debug
+       [:h2 "IB API Test"]
+       [:div#ib-buttons
+        [:button.ib-btn {:data-action "/ib/ping"}              "Ping IB"]
+        [:button.ib-btn {:data-action "/ib/reconnect"}         "Reconnect IB"]
+        [:button.ib-btn {:data-action "/ib/refresh/balance"}   "Refresh Balance"]
+        [:button.ib-btn {:data-action "/ib/refresh/positions"} "Refresh Positions"]
+        [:button.ib-btn {:data-action "/ib/refresh/orders"}    "Refresh Orders"]
+        [:button.ib-btn {:data-action "/ib/quote?symbol=AAPL"} "AAPL Quote"]]
+       [:div.ib-panels
+        [:div.ib-panel
+         [:span.ib-panel-label "Last response"]
+         [:pre#ib-debug-output "Click a button to test the IB API."]]
+        [:div.ib-panel
+         [:span.ib-panel-label "Live IB messages"]
+         [:div#ib-live-log]]]]]
      (include-js "/app.js")]))
 
 (defn- interval-option [name-attr current-ms value-ms label]
@@ -305,6 +331,73 @@
       (httpkit/on-receive ch (fn [_] nil)))
     {:status 401 :body "Unauthorized"}))
 
+(declare stop-ib-runtime! start-ib-runtime!)
+
+(defn- ib-ping-handler [_]
+  (let [cfg (ib-config)]
+    (ib-json-response
+     {:ok        true
+      :connected (= :connected (:connection @ui-state))
+      :runtime   (some? @ib-runtime)
+      :host      (:host cfg)
+      :port      (:port cfg)
+      :status    (name (:connection @ui-state))})))
+
+(defn- ib-reconnect-handler [_]
+  (stop-ib-runtime!)
+  (let [ok? (start-ib-runtime!)]
+    (ib-json-response {:ok ok?
+                       :message (if ok? "Connected to IB" "Failed to connect to IB")})))
+
+(defn- ib-refresh-balance-handler [_]
+  (let [conn (ib-conn)]
+    (if-not conn
+      (ib-json-response {:ok false :message "Not connected to IB"})
+      (let [result (async/<!! (ib.account/account-summary-snapshot!
+                                conn {:group "All"
+                                      :tags ["NetLiquidation"]
+                                      :timeout-ms snapshot-timeout-ms}))]
+        (when (:ok result)
+          (when-let [{:keys [value currency]} (extract-net-liquidation (:values result))]
+            (let [payload {:value value :currency (or currency "USD")}]
+              (swap! ui-state assoc :balance payload)
+              (broadcast! {:type "portfolio-balance" :data payload}))))
+        (ib-json-response {:ok    (:ok result)
+                           :error (some-> (:error result) str)})))))
+
+(defn- ib-refresh-positions-handler [_]
+  (let [conn (ib-conn)]
+    (if-not conn
+      (ib-json-response {:ok false :message "Not connected to IB"})
+      (let [result (async/<!! (ib.positions/positions-snapshot!
+                                conn {:timeout-ms snapshot-timeout-ms}))]
+        (if (and (vector? result) (every? #(= :ib/position (:type %)) result))
+          (let [rows (mapv to-position-row result)]
+            (swap! ui-state assoc :positions rows)
+            (broadcast! {:type "positions" :data rows})
+            (ib-json-response {:ok true :rows rows}))
+          (ib-json-response {:ok false :error (some-> (:reason result) str)}))))))
+
+(defn- ib-refresh-orders-handler [_]
+  (let [conn (ib-conn)]
+    (if-not conn
+      (ib-json-response {:ok false :message "Not connected to IB"})
+      (let [result (async/<!! (ib.orders/open-orders-snapshot!
+                                conn {:mode :open :timeout-ms snapshot-timeout-ms}))]
+        (if (:ok result)
+          (let [rows (mapv to-order-row (:orders result))]
+            (swap! ui-state assoc :orders rows)
+            (broadcast! {:type "orders" :data rows})
+            (ib-json-response {:ok true :rows rows}))
+          (ib-json-response {:ok false :error (some-> (:error result) str)}))))))
+
+(defn- ib-quote-handler [request]
+  (let [symbol (or (get-in request [:params :symbol]) "AAPL")
+        conn   (ib-conn)]
+    (if-not conn
+      (ib-json-response {:ok false :message "Not connected to IB"})
+      (ib-json-response (async/<!! (ib.market-data/market-data-snapshot! conn symbol))))))
+
 (defroutes app-routes
   (GET  "/"          _   (resp/redirect "/dashboard"))
   (GET  "/login"     _   (html-response (login-page nil)))
@@ -320,6 +413,12 @@
                              (settings-handler req)
                              {:status 401 :body "Unauthorized"}))
   (GET  "/ws"        req (websocket-handler req))
+  (POST "/ib/ping"              req (if (get-in req [:session :identity]) (ib-ping-handler req)              {:status 401 :body "Unauthorized"}))
+  (POST "/ib/reconnect"         req (if (get-in req [:session :identity]) (ib-reconnect-handler req)         {:status 401 :body "Unauthorized"}))
+  (POST "/ib/refresh/balance"   req (if (get-in req [:session :identity]) (ib-refresh-balance-handler req)   {:status 401 :body "Unauthorized"}))
+  (POST "/ib/refresh/positions" req (if (get-in req [:session :identity]) (ib-refresh-positions-handler req) {:status 401 :body "Unauthorized"}))
+  (POST "/ib/refresh/orders"    req (if (get-in req [:session :identity]) (ib-refresh-orders-handler req)    {:status 401 :body "Unauthorized"}))
+  (POST "/ib/quote"             req (if (get-in req [:session :identity]) (ib-quote-handler req)             {:status 401 :body "Unauthorized"}))
   (route/resources "/")
   (route/not-found "Not found"))
 
@@ -544,6 +643,14 @@
         (broadcast! {:type "ib-error" :data {:message (.getMessage t)}})
         false))))
 
+(defn- maybe-wrap-reload [handler]
+  (try
+    (require '[ring.middleware.reload :refer [wrap-reload]])
+    (println "Dev mode: hot-reload enabled")
+    ((resolve 'ring.middleware.reload/wrap-reload) handler)
+    (catch Exception _
+      handler)))
+
 (defn start-server!
   "Loads settings, starts Kraken and IB runtimes, and starts the http-kit web server.
   Returns a stop function that shuts down all background loops."
@@ -552,7 +659,7 @@
   (let [kraken-ch (async/chan)]
     (start-kraken-loop! kraken-ch)
     (start-ib-runtime!)
-    (let [stop-http (httpkit/run-server app {:port port})]
+    (let [stop-http (httpkit/run-server (maybe-wrap-reload app) {:port port})]
       (fn []
         (stop-http)
         (async/close! kraken-ch)

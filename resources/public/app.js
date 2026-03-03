@@ -45,7 +45,7 @@
           updateCellError(msg.data);
           break;
         case "ib-error":
-          console.error("[trader1] IB Error:", msg.data && msg.data.message);
+          appendIbLog("error", msg.data && msg.data.message ? msg.data.message : "(no message)");
           break;
         default:
           console.warn("[trader1] Unknown message type:", msg.type);
@@ -62,8 +62,20 @@
     };
   }
 
+  function appendIbLog(type, text) {
+    var log = document.getElementById("ib-live-log");
+    if (!log) return;
+    var entry = document.createElement("div");
+    entry.className = "ib-log-entry ib-log-" + type;
+    var ts = new Date().toLocaleTimeString();
+    entry.textContent = "[" + ts + "] " + (text || "");
+    log.insertBefore(entry, log.firstChild);
+    while (log.children.length > 100) { log.removeChild(log.lastChild); }
+  }
+
   function updateConnection(data) {
     if (!data || !data.status) return;
+    appendIbLog("connection", "IB connection: " + data.status);
     if (data.status === "connected") {
       document.body.classList.remove("disconnected");
       return;
@@ -73,6 +85,9 @@
 
   function updateCellError(data) {
     if (!data || !data.cell) return;
+    if (data.message) {
+      appendIbLog("cell-error", data.cell + ": " + data.message);
+    }
     var id = data.cell + "-error";
     var el = document.getElementById(id);
     if (!el) {
@@ -211,6 +226,30 @@
     var el = document.getElementById(id);
     if (el && value != null) el.textContent = value;
   }
+
+  // IB debug buttons
+  function ibPost(url) {
+    var output = document.getElementById("ib-debug-output");
+    if (output) output.textContent = "Loading…";
+    var meta = document.querySelector("meta[name='csrf-token']");
+    var headers = { "Content-Type": "application/json" };
+    if (meta) headers["X-CSRF-Token"] = meta.getAttribute("content");
+    fetch(url, { method: "POST", headers: headers })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (output) output.textContent = JSON.stringify(data, null, 2);
+      })
+      .catch(function (e) {
+        if (output) output.textContent = "Error: " + e.message;
+      });
+  }
+
+  // Script is at bottom of body — DOM is already available, no DOMContentLoaded needed
+  document.querySelectorAll(".ib-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      ibPost(btn.getAttribute("data-action"));
+    });
+  });
 
   connect();
 }());
