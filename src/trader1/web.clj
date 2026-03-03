@@ -5,7 +5,6 @@
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.util.anti-forgery :refer [anti-forgery-field]]
             [ring.util.response :as resp]
-            [hiccup.core :refer [html]]
             [hiccup.page :refer [html5 include-css include-js]]
             [cheshire.core :as json]
             [org.httpkit.server :as httpkit]
