@@ -384,11 +384,8 @@
         :else
         (recur)))))
 
-(defn- start-snapshot-loop! [conn stop-ch]
-  (let [balance-in-flight? (atom false)
-        positions-in-flight? (atom false)
-        orders-in-flight? (atom false)
-        kraken-usd-pairs (atom nil)
+(defn- start-kraken-loop! [stop-ch]
+  (let [kraken-usd-pairs (atom nil)
         last-kraken-ticker (atom 0)
         last-kraken-balance (atom 0)
         last-kraken-orders (atom 0)]
@@ -422,7 +419,11 @@
                                 (let [t (fetch-with-fallback #(kraken/request-ticker kraken-ticker-pairs))]
                                   (reset! last-kraken-ticker now)
                                   t)))
-              kraken-portfolio-usd (compute-kraken-portfolio-usd kraken-balance @kraken-usd-pairs kraken-ticker)]
+              kraken-portfolio-usd (when kraken-balance
+                                       (compute-kraken-portfolio-usd
+                                         kraken-balance
+                                         @kraken-usd-pairs
+                                         (or kraken-ticker (:kraken-ticker @ui-state))))]
           (when kraken-balance
             (swap! ui-state assoc :kraken-balance kraken-balance)
             (broadcast! {:type "kraken-balance" :data kraken-balance}))
@@ -435,8 +436,17 @@
           (when kraken-portfolio-usd
             (let [payload {:total-usd (format "%.2f" kraken-portfolio-usd)}]
               (swap! ui-state assoc :kraken-portfolio-value payload)
-              (broadcast! {:type "kraken-portfolio-value" :data payload}))))
+              (broadcast! {:type "kraken-portfolio-value" :data payload})))))
+      (let [[_ port] (async/alts! [(async/timeout refresh-ms) stop-ch])]
+        (when-not (= port stop-ch)
+          (recur))))))
 
+(defn- start-snapshot-loop! [conn stop-ch]
+  (let [balance-in-flight? (atom false)
+        positions-in-flight? (atom false)
+        orders-in-flight? (atom false)]
+    (async/go-loop []
+      (when (seq @connected-channels)
         (when (compare-and-set! balance-in-flight? false true)
           (async/go
             (try
@@ -536,12 +546,15 @@
         false))))
 
 (defn start-server!
-  "Loads settings, starts IB runtime, and starts the http-kit web server.
-  Returns a stop function that also disconnects from IB."
+  "Loads settings, starts Kraken and IB runtimes, and starts the http-kit web server.
+  Returns a stop function that shuts down all background loops."
   [port]
   (settings/load!)
-  (start-ib-runtime!)
-  (let [stop-http (httpkit/run-server app {:port port})]
-    (fn []
-      (stop-http)
-      (stop-ib-runtime!))))
+  (let [kraken-ch (async/chan)]
+    (start-kraken-loop! kraken-ch)
+    (start-ib-runtime!)
+    (let [stop-http (httpkit/run-server app {:port port})]
+      (fn []
+        (stop-http)
+        (async/close! kraken-ch)
+        (stop-ib-runtime!)))))

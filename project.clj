@@ -17,9 +17,10 @@
                  ;; Pin to Java 8 compatible versions (ring-core 1.12+ requires Java 11)
                  [ring/ring-core "1.11.0"]
                  [commons-io/commons-io "2.13.0"]
-                 [buddy/buddy-hashers "2.0.167"]]
+                 [buddy/buddy-hashers "2.0.167"]
+                 [com.google.protobuf/protobuf-java "4.29.3"]]
   :source-paths ["src" "vendor/ib-cl-wrap/src"]
-  :resource-paths ["resources" "lib"]
+  :resource-paths ["resources" "lib/TwsApi.jar"]
   :main ^:skip-aot trader1.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
