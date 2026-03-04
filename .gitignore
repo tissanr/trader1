@@ -1,3 +1,9 @@
+# Secrets / local config
+credentials/kraken.key
+config/auth.edn
+config/settings.edn
+
+# Leiningen / Java build output
 /target
 /classes
 /checkouts
@@ -5,8 +11,25 @@ pom.xml
 pom.xml.asc
 *.jar
 *.class
+
+# Leiningen runtime files
 /.lein-*
 /.nrepl-port
+
+# OS / file-manager metadata
+.DS_Store
+.directory
+
+# Mercurial (legacy)
 .hgignore
 .hg/
+
+# IDEs and editors
 /.idea
+/.vscode
+/.calva
+.clj-kondo/
+.lsp/
+
+# Claude Code
+/.claude

@@ -1,0 +1,6 @@
+;; Copy this file to config/auth.edn and replace the hash.
+;; Generate a bcrypt hash in the REPL:
+;;   (require '[trader1.auth :as auth])
+;;   (auth/hash-password "your-password")
+{:users [{:username "admin"
+          :password-hash "REPLACE_WITH_BCRYPT_HASH"}]}

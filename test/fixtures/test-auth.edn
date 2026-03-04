@@ -1,0 +1,4 @@
+{:users [{:username "admin"
+          :password-hash "bcrypt+sha512$497f47c733e5f886382c80bd5948bec8$12$b7521a6e83ab97988fa24cb161bb148d4f61187fec626a6d"}
+         {:username "viewer"
+          :password-hash "bcrypt+sha512$497f47c733e5f886382c80bd5948bec8$12$b7521a6e83ab97988fa24cb161bb148d4f61187fec626a6d"}]}

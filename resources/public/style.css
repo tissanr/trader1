@@ -1,0 +1,371 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+body.disconnected::after {
+  content: "Disconnected";
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  background: #c0392b;
+  color: #fff;
+  padding: .3rem .8rem;
+  border-radius: 4px;
+  font-size: .75rem;
+}
+
+#login-box {
+  width: 320px;
+  margin: 10vh auto;
+  padding: 2rem;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+}
+
+#login-box h1 {
+  font-size: 1.4rem;
+  color: #f0c040;
+  margin-bottom: 1.5rem;
+}
+
+#login-box label {
+  display: block;
+  margin-bottom: 1rem;
+  font-size: .85rem;
+  color: #999;
+}
+
+#login-box input {
+  display: block;
+  width: 100%;
+  margin-top: .3rem;
+  padding: .5rem .7rem;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #eee;
+  font-size: 1rem;
+}
+
+#login-box input:focus {
+  outline: none;
+  border-color: #f0c040;
+}
+
+#login-box button {
+  width: 100%;
+  margin-top: .5rem;
+  padding: .6rem;
+  background: #f0c040;
+  color: #111;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#login-box button:hover { background: #ffd050; }
+
+p.error {
+  color: #e05050;
+  font-size: .85rem;
+  margin-bottom: 1rem;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .9rem 2rem;
+  background: #1a1a1a;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+header h1 {
+  font-size: 1.1rem;
+  color: #f0c040;
+  letter-spacing: .04em;
+}
+
+header nav {
+  display: flex;
+  gap: 1.5rem;
+}
+
+header a {
+  color: #888;
+  text-decoration: none;
+  font-size: .85rem;
+}
+
+header a:hover { color: #ccc; }
+
+#dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+#kraken-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+section {
+  background: #1a1a1a;
+  border: 1px solid #252525;
+  border-radius: 8px;
+  padding: 1rem;
+  min-height: 280px;
+}
+
+section h2 {
+  font-size: .75rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: .8rem;
+}
+
+#dashboard-empty-cell {
+  background: transparent;
+  border: 1px dashed #252525;
+}
+
+#portfolio-balance-cell .value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #f0c040;
+}
+
+#kraken-portfolio-cell .value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #f0c040;
+}
+
+#kraken-ticker-cell .row {
+  display: flex;
+  gap: .6rem;
+  margin-top: .3rem;
+}
+
+#kraken-ticker-cell .label {
+  color: #888;
+  min-width: 3rem;
+}
+
+ul {
+  list-style: none;
+}
+
+li {
+  padding: .35rem 0;
+  border-bottom: 1px solid #1f1f1f;
+  font-size: .88rem;
+  color: #ccc;
+}
+
+li:last-child {
+  border-bottom: none;
+}
+
+li.empty {
+  color: #707070;
+  font-style: italic;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  font-size: .82rem;
+  padding: .36rem .3rem;
+  border-bottom: 1px solid #242424;
+}
+
+.data-table th {
+  color: #8c8c8c;
+  font-weight: 600;
+}
+
+.data-table td {
+  color: #d0d0d0;
+}
+
+.data-table td.empty {
+  color: #707070;
+  font-style: italic;
+}
+
+.cell-error {
+  margin-top: .6rem;
+  font-size: .82rem;
+  color: #ff7272;
+}
+
+#settings form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  max-width: 380px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.setting-row label {
+  color: #aaa;
+  font-size: .9rem;
+}
+
+.setting-row select {
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #eee;
+  font-size: .9rem;
+  padding: .4rem .6rem;
+  cursor: pointer;
+}
+
+.setting-row select:focus {
+  outline: none;
+  border-color: #f0c040;
+}
+
+#settings button[type=submit] {
+  align-self: flex-start;
+  padding: .5rem 1.5rem;
+  background: #f0c040;
+  color: #111;
+  border: none;
+  border-radius: 4px;
+  font-size: .9rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#settings button[type=submit]:hover { background: #ffd050; }
+
+@media (max-width: 1200px) {
+  #kraken-grid,
+  #dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+#ib-debug {
+  margin: 0 1.25rem 1.25rem;
+  min-height: auto;
+}
+
+#ib-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-bottom: .8rem;
+}
+
+.ib-btn {
+  padding: .4rem .9rem;
+  background: #1f2a38;
+  color: #7eb8e8;
+  border: 1px solid #2a3f55;
+  border-radius: 4px;
+  font-size: .82rem;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+
+.ib-btn:hover {
+  background: #253245;
+  border-color: #4a82b0;
+  color: #a8d0f0;
+}
+
+.ib-btn:active {
+  background: #1a2530;
+}
+
+.ib-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .8rem;
+}
+
+.ib-panel-label {
+  display: block;
+  font-size: .7rem;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .3rem;
+}
+
+#ib-debug-output {
+  font-size: .78rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  color: #b0c8a0;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 4px;
+  padding: .6rem .8rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+  height: 200px;
+  overflow-y: auto;
+}
+
+#ib-live-log {
+  font-size: .78rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 4px;
+  padding: .5rem .7rem;
+  height: 200px;
+  overflow-y: auto;
+}
+
+.ib-log-entry {
+  padding: .18rem 0;
+  border-bottom: 1px solid #1a1a1a;
+  color: #888;
+  word-break: break-word;
+}
+
+.ib-log-entry:last-child { border-bottom: none; }
+
+.ib-log-error      { color: #e07070; }
+.ib-log-connection { color: #70a8d0; }
+.ib-log-cell-error { color: #d09050; }
+
+@media (max-width: 760px) {
+  #kraken-grid,
+  #dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  section {
+    min-height: auto;
+  }
+}

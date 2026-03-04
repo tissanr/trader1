@@ -1,8 +1,17 @@
 (ns trader1.security-test
-  (:require [clojure.test :refer :all])
-  (:require [trader1.security :refer :all]))
+  (:require [clojure.test :refer [deftest is testing]]
+            [trader1.security :as security]))
+
+(def ^:private fixture-file "test/fixtures/test.key")
 
 (deftest read-in-security-pair-test
-  (let [details (read-in-security-pair)]
-    (is (contains? details :key))
-    (is (contains? details :secret))))
+  (with-redefs [security/credentials-file fixture-file]
+    (testing "returns a map with :key and :secret"
+      (let [result (security/read-in-security-pair)]
+        (is (map? result))
+        (is (contains? result :key))
+        (is (contains? result :secret))))
+    (testing "parses the key from line 1"
+      (is (= "fake-api-key" (:key (security/read-in-security-pair)))))
+    (testing "parses the secret from line 2"
+      (is (= "dGVzdHNlY3JldA==" (:secret (security/read-in-security-pair)))))))
