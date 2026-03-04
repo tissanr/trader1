@@ -5,15 +5,17 @@
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.util.anti-forgery :refer [anti-forgery-field]]
             [ring.util.response :as resp]
-            [hiccup.core :refer [html]]
             [hiccup.page :refer [html5 include-css include-js]]
             [cheshire.core :as json]
             [org.httpkit.server :as httpkit]
             [ib.account :as ib.account]
             [ib.client :as ib.client]
+            [ib.market-data :as ib.market-data]
             [ib.open-orders :as ib.orders]
             [ib.positions :as ib.positions]
+            [ring.middleware.anti-forgery :refer [*anti-forgery-token*]]
             [trader1.auth :as auth]
+            [trader1.kraken :as kraken]
             [trader1.settings :as settings]))
 
 (def refresh-ms 10000)
@@ -25,6 +27,10 @@
   (atom {:balance nil
          :positions []
          :orders []
+         :kraken-balance nil
+         :kraken-orders nil
+         :kraken-portfolio-value nil
+         :kraken-ticker nil
          :errors {:balance nil :positions nil :orders nil}
          :connection :disconnected}))
 (defonce last-order-status (atom {}))
@@ -62,7 +68,7 @@
 
 (defn- ib-config []
   {:host (or (System/getenv "IB_HOST") "127.0.0.1")
-   :port (parse-int (or (System/getenv "IB_PORT") "7497") 7497)
+   :port (parse-int (or (System/getenv "IB_PORT") "4002") 4002)
    :client-id 0
    :event-buffer-size 2048
    :overflow-strategy :sliding})
@@ -113,9 +119,18 @@
      :avg-cost (or avg-cost "--")}))
 
 (defn- push-state-to-client! [ch]
-  (let [{:keys [balance positions orders errors connection]} @ui-state]
+  (let [{:keys [balance positions orders errors connection
+                kraken-balance kraken-orders kraken-portfolio-value kraken-ticker]} @ui-state]
     (httpkit/send! ch (json/generate-string {:type "connection"
                                              :data {:status (name connection)}}))
+    (httpkit/send! ch (json/generate-string {:type "kraken-balance"
+                                             :data kraken-balance}))
+    (httpkit/send! ch (json/generate-string {:type "kraken-orders"
+                                             :data kraken-orders}))
+    (httpkit/send! ch (json/generate-string {:type "kraken-portfolio-value"
+                                             :data kraken-portfolio-value}))
+    (httpkit/send! ch (json/generate-string {:type "kraken-ticker"
+                                             :data kraken-ticker}))
     (httpkit/send! ch (json/generate-string {:type "portfolio-balance"
                                              :data balance}))
     (httpkit/send! ch (json/generate-string {:type "positions"
@@ -126,6 +141,13 @@
       (httpkit/send! ch (json/generate-string {:type "cell-error"
                                                :data {:cell (name cell)
                                                       :message message}})))))
+
+(defn- ib-json-response [body]
+  {:status 200
+   :headers {"Content-Type" "application/json; charset=utf-8"}
+   :body (json/generate-string body)})
+
+(defn- ib-conn [] (:conn @ib-runtime))
 
 (defn login-page [error-msg]
   (html5
@@ -155,6 +177,7 @@
     [:head
      [:meta {:charset "utf-8"}]
      [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+     [:meta {:name "csrf-token" :content (force *anti-forgery-token*)}]
      [:title "Trader1 - Dashboard"]
      (include-css "/style.css")]
     [:body
@@ -163,39 +186,71 @@
       [:nav
        [:a {:href "/settings"} "Settings"]
        [:a {:href "/logout"} "Logout"]]]
-     [:main#dashboard-grid
-      [:section#portfolio-balance-cell
-       [:h2 "Portfolio Balance (USD)"]
-       [:p.value#portfolio-balance-value "--"]]
-      [:section#dashboard-empty-cell {:aria-hidden "true"}
-       [:h2 ""]]
-      [:section#positions-cell
-       [:h2 "Positionen"]
-       [:table.data-table
-        [:thead
+     [:main
+      [:div#kraken-grid
+       [:section#kraken-portfolio-cell
+        [:h2 "Kraken Portfolio Value"]
+        [:p.value#kraken-portfolio-value "-- USD"]]
+       [:section#kraken-ticker-cell
+        [:h2 "Kraken Ticker (XBT/USD)"]
+        [:div.row [:span.label "Last"] [:span#kraken-ticker-last "--"]]
+        [:div.row [:span.label "Ask"]  [:span#kraken-ticker-ask "--"]]
+        [:div.row [:span.label "Bid"]  [:span#kraken-ticker-bid "--"]]]
+       [:section#kraken-balance-cell
+        [:h2 "Kraken Balance"]
+        [:ul#kraken-balance-list [:li "Connecting..."]]]
+       [:section#kraken-orders-cell
+        [:h2 "Kraken Open Orders"]
+        [:ul#kraken-orders-list [:li "Connecting..."]]]]
+      [:div#dashboard-grid
+       [:section#portfolio-balance-cell
+        [:h2 "Portfolio Balance (USD)"]
+        [:p.value#portfolio-balance-value "--"]]
+       [:section#dashboard-empty-cell {:aria-hidden "true"}
+        [:h2 ""]]
+       [:section#positions-cell
+        [:h2 "Positionen"]
+        [:table.data-table
+         [:thead
+          [:tr
+           [:th "Symbol"]
+           [:th "SecType"]
+           [:th "Currency"]
+           [:th "Position"]
+           [:th "AvgCost"]]]
+         [:tbody#positions-body
+          [:tr [:td {:colspan "5" :class "empty"} "Connecting..."]]]]]
+       [:section#orders-cell
+        [:h2 "Offene Orders"]
+        [:table.data-table
+         [:thead
          [:tr
-          [:th "Symbol"]
-          [:th "SecType"]
-          [:th "Currency"]
-          [:th "Position"]
-          [:th "AvgCost"]]]
-        [:tbody#positions-body
-         [:tr [:td {:colspan "5" :class "empty"} "Connecting..."]]]]]
-      [:section#orders-cell
-       [:h2 "Offene Orders"]
-       [:table.data-table
-        [:thead
-         [:tr
-          [:th "Symbol"]
-          [:th "Action"]
-          [:th "OrderType"]
-          [:th "Quantity"]
-          [:th "LimitPrice"]
-          [:th "Status"]
-          [:th "Filled"]
+           [:th "Symbol"]
+           [:th "Action"]
+           [:th "OrderType"]
+           [:th "Quantity"]
+           [:th "LimitPrice"]
+           [:th "Status"]
+           [:th "Filled"]
           [:th "Remaining"]]]
-        [:tbody#orders-body
-         [:tr [:td {:colspan "8" :class "empty"} "Connecting..."]]]]]]
+         [:tbody#orders-body
+          [:tr [:td {:colspan "8" :class "empty"} "Connecting..."]]]]]]
+      [:section#ib-debug
+       [:h2 "IB API Test"]
+       [:div#ib-buttons
+        [:button.ib-btn {:data-action "/ib/ping"}              "Ping IB"]
+        [:button.ib-btn {:data-action "/ib/reconnect"}         "Reconnect IB"]
+        [:button.ib-btn {:data-action "/ib/refresh/balance"}   "Refresh Balance"]
+        [:button.ib-btn {:data-action "/ib/refresh/positions"} "Refresh Positions"]
+        [:button.ib-btn {:data-action "/ib/refresh/orders"}    "Refresh Orders"]
+        [:button.ib-btn {:data-action "/ib/quote?symbol=AAPL"} "AAPL Quote"]]
+       [:div.ib-panels
+        [:div.ib-panel
+         [:span.ib-panel-label "Last response"]
+         [:pre#ib-debug-output "Click a button to test the IB API."]]
+        [:div.ib-panel
+         [:span.ib-panel-label "Live IB messages"]
+         [:div#ib-live-log]]]]]
      (include-js "/app.js")]))
 
 (defn- interval-option [name-attr current-ms value-ms label]
@@ -276,6 +331,73 @@
       (httpkit/on-receive ch (fn [_] nil)))
     {:status 401 :body "Unauthorized"}))
 
+(declare stop-ib-runtime! start-ib-runtime!)
+
+(defn- ib-ping-handler [_]
+  (let [cfg (ib-config)]
+    (ib-json-response
+     {:ok        true
+      :connected (= :connected (:connection @ui-state))
+      :runtime   (some? @ib-runtime)
+      :host      (:host cfg)
+      :port      (:port cfg)
+      :status    (name (:connection @ui-state))})))
+
+(defn- ib-reconnect-handler [_]
+  (stop-ib-runtime!)
+  (let [ok? (start-ib-runtime!)]
+    (ib-json-response {:ok ok?
+                       :message (if ok? "Connected to IB" "Failed to connect to IB")})))
+
+(defn- ib-refresh-balance-handler [_]
+  (let [conn (ib-conn)]
+    (if-not conn
+      (ib-json-response {:ok false :message "Not connected to IB"})
+      (let [result (async/<!! (ib.account/account-summary-snapshot!
+                                conn {:group "All"
+                                      :tags ["NetLiquidation"]
+                                      :timeout-ms snapshot-timeout-ms}))]
+        (when (:ok result)
+          (when-let [{:keys [value currency]} (extract-net-liquidation (:values result))]
+            (let [payload {:value value :currency (or currency "USD")}]
+              (swap! ui-state assoc :balance payload)
+              (broadcast! {:type "portfolio-balance" :data payload}))))
+        (ib-json-response {:ok    (:ok result)
+                           :error (some-> (:error result) str)})))))
+
+(defn- ib-refresh-positions-handler [_]
+  (let [conn (ib-conn)]
+    (if-not conn
+      (ib-json-response {:ok false :message "Not connected to IB"})
+      (let [result (async/<!! (ib.positions/positions-snapshot!
+                                conn {:timeout-ms snapshot-timeout-ms}))]
+        (if (and (vector? result) (every? #(= :ib/position (:type %)) result))
+          (let [rows (mapv to-position-row result)]
+            (swap! ui-state assoc :positions rows)
+            (broadcast! {:type "positions" :data rows})
+            (ib-json-response {:ok true :rows rows}))
+          (ib-json-response {:ok false :error (some-> (:reason result) str)}))))))
+
+(defn- ib-refresh-orders-handler [_]
+  (let [conn (ib-conn)]
+    (if-not conn
+      (ib-json-response {:ok false :message "Not connected to IB"})
+      (let [result (async/<!! (ib.orders/open-orders-snapshot!
+                                conn {:mode :open :timeout-ms snapshot-timeout-ms}))]
+        (if (:ok result)
+          (let [rows (mapv to-order-row (:orders result))]
+            (swap! ui-state assoc :orders rows)
+            (broadcast! {:type "orders" :data rows})
+            (ib-json-response {:ok true :rows rows}))
+          (ib-json-response {:ok false :error (some-> (:error result) str)}))))))
+
+(defn- ib-quote-handler [request]
+  (let [symbol (or (get-in request [:params :symbol]) "AAPL")
+        conn   (ib-conn)]
+    (if-not conn
+      (ib-json-response {:ok false :message "Not connected to IB"})
+      (ib-json-response (async/<!! (ib.market-data/market-data-snapshot! conn symbol))))))
+
 (defroutes app-routes
   (GET  "/"          _   (resp/redirect "/dashboard"))
   (GET  "/login"     _   (html-response (login-page nil)))
@@ -291,11 +413,40 @@
                              (settings-handler req)
                              {:status 401 :body "Unauthorized"}))
   (GET  "/ws"        req (websocket-handler req))
+  (POST "/ib/ping"              req (if (get-in req [:session :identity]) (ib-ping-handler req)              {:status 401 :body "Unauthorized"}))
+  (POST "/ib/reconnect"         req (if (get-in req [:session :identity]) (ib-reconnect-handler req)         {:status 401 :body "Unauthorized"}))
+  (POST "/ib/refresh/balance"   req (if (get-in req [:session :identity]) (ib-refresh-balance-handler req)   {:status 401 :body "Unauthorized"}))
+  (POST "/ib/refresh/positions" req (if (get-in req [:session :identity]) (ib-refresh-positions-handler req) {:status 401 :body "Unauthorized"}))
+  (POST "/ib/refresh/orders"    req (if (get-in req [:session :identity]) (ib-refresh-orders-handler req)    {:status 401 :body "Unauthorized"}))
+  (POST "/ib/quote"             req (if (get-in req [:session :identity]) (ib-quote-handler req)             {:status 401 :body "Unauthorized"}))
   (route/resources "/")
   (route/not-found "Not found"))
 
 (def app
   (wrap-defaults app-routes site-defaults))
+
+(defn- fetch-with-fallback [f]
+  (try
+    (f)
+    (catch Exception _
+      nil)))
+
+(defn- compute-kraken-portfolio-usd [balance usd-pairs ticker]
+  (when (and balance usd-pairs ticker)
+    (reduce (fn [total [k v]]
+              (let [asset  (name k)
+                    amount (Double/parseDouble v)]
+                (if (zero? amount)
+                  total
+                  (if (= asset "ZUSD")
+                    (+ total amount)
+                    (if-let [{:keys [canonical]} (get usd-pairs asset)]
+                      (if-let [pair-data (get ticker (keyword canonical))]
+                        (+ total (* amount (Double/parseDouble (first (:c pair-data)))))
+                        total)
+                      total)))))
+            0.0
+            balance)))
 
 (defn- start-event-forwarder! [conn events-ch stop-ch]
   (async/go-loop []
@@ -330,6 +481,63 @@
 
         :else
         (recur)))))
+
+(defn- start-kraken-loop! [stop-ch]
+  (let [kraken-usd-pairs (atom nil)
+        last-kraken-ticker (atom 0)
+        last-kraken-balance (atom 0)
+        last-kraken-orders (atom 0)]
+    (async/go-loop []
+      (when (seq @connected-channels)
+        (when (nil? @kraken-usd-pairs)
+          (reset! kraken-usd-pairs (fetch-with-fallback kraken/asset-usd-pairs)))
+
+        (let [now (System/currentTimeMillis)
+              cfg @settings/settings
+              kraken-balance (when-let [ms (:balance-ms cfg)]
+                               (when (> (- now @last-kraken-balance) ms)
+                                 (let [b (fetch-with-fallback kraken/request-balance)]
+                                   (reset! last-kraken-balance now)
+                                   b)))
+              kraken-orders (when-let [ms (:orders-ms cfg)]
+                              (when (> (- now @last-kraken-orders) ms)
+                                (let [o (fetch-with-fallback kraken/request-open-orders)]
+                                  (reset! last-kraken-orders now)
+                                  o)))
+              kraken-ticker-pairs (if (and kraken-balance @kraken-usd-pairs)
+                                    (->> kraken-balance
+                                         (remove (fn [[k _]] (= (name k) "ZUSD")))
+                                         (filter (fn [[_ v]] (pos? (Double/parseDouble v))))
+                                         (keep (fn [[k _]] (get-in @kraken-usd-pairs [(name k) :altname])))
+                                         (into ["XBTUSD"])
+                                         distinct vec)
+                                    ["XBTUSD"])
+              kraken-ticker (when-let [ms (:ticker-ms cfg)]
+                              (when (> (- now @last-kraken-ticker) ms)
+                                (let [t (fetch-with-fallback #(kraken/request-ticker kraken-ticker-pairs))]
+                                  (reset! last-kraken-ticker now)
+                                  t)))
+              kraken-portfolio-usd (when kraken-balance
+                                       (compute-kraken-portfolio-usd
+                                         kraken-balance
+                                         @kraken-usd-pairs
+                                         (or kraken-ticker (:kraken-ticker @ui-state))))]
+          (when kraken-balance
+            (swap! ui-state assoc :kraken-balance kraken-balance)
+            (broadcast! {:type "kraken-balance" :data kraken-balance}))
+          (when kraken-orders
+            (swap! ui-state assoc :kraken-orders kraken-orders)
+            (broadcast! {:type "kraken-orders" :data kraken-orders}))
+          (when kraken-ticker
+            (swap! ui-state assoc :kraken-ticker kraken-ticker)
+            (broadcast! {:type "kraken-ticker" :data kraken-ticker}))
+          (when kraken-portfolio-usd
+            (let [payload {:total-usd (format "%.2f" kraken-portfolio-usd)}]
+              (swap! ui-state assoc :kraken-portfolio-value payload)
+              (broadcast! {:type "kraken-portfolio-value" :data payload})))))
+      (let [[_ port] (async/alts! [(async/timeout refresh-ms) stop-ch])]
+        (when-not (= port stop-ch)
+          (recur))))))
 
 (defn- start-snapshot-loop! [conn stop-ch]
   (let [balance-in-flight? (atom false)
@@ -435,13 +643,24 @@
         (broadcast! {:type "ib-error" :data {:message (.getMessage t)}})
         false))))
 
+(defn- maybe-wrap-reload [handler]
+  (try
+    (require '[ring.middleware.reload :refer [wrap-reload]])
+    (println "Dev mode: hot-reload enabled")
+    ((resolve 'ring.middleware.reload/wrap-reload) handler)
+    (catch Exception _
+      handler)))
+
 (defn start-server!
-  "Loads settings, starts IB runtime, and starts the http-kit web server.
-  Returns a stop function that also disconnects from IB."
+  "Loads settings, starts Kraken and IB runtimes, and starts the http-kit web server.
+  Returns a stop function that shuts down all background loops."
   [port]
   (settings/load!)
-  (start-ib-runtime!)
-  (let [stop-http (httpkit/run-server app {:port port})]
-    (fn []
-      (stop-http)
-      (stop-ib-runtime!))))
+  (let [kraken-ch (async/chan)]
+    (start-kraken-loop! kraken-ch)
+    (start-ib-runtime!)
+    (let [stop-http (httpkit/run-server (maybe-wrap-reload app) {:port port})]
+      (fn []
+        (stop-http)
+        (async/close! kraken-ch)
+        (stop-ib-runtime!)))))
