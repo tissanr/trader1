@@ -34,5 +34,3 @@
         start! (ns-resolve 'trader1.web 'start-server!)]
     (start! port)
     (println (str "Trader1 dashboard running on http://localhost:" port))))
-
-;; just to find out how to call java methods
