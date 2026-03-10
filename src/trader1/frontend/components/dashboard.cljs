@@ -20,17 +20,17 @@
        [:a {:href "/settings"} "Settings"]
        [:a {:href "/logout"}   "Logout"]]]
      [:main
+      ;; ── Portfolio charts ──────────────────────────────────────────────
+      [:div#portfolio-charts
+       [charts/asset-distribution kraken-balance kraken-ticker]
+       [charts/portfolio-breakdown (:total-value kraken-portfolio-value) portfolio-balance]]
+
       ;; ── Kraken section ────────────────────────────────────────────────
       [:div#kraken-grid
        [kraken/portfolio-value]
        [kraken/ticker]
        [kraken/balance]
        [kraken/orders]]
-
-      ;; ── Portfolio charts ──────────────────────────────────────────────
-      [:div#portfolio-charts
-       [charts/asset-distribution kraken-balance kraken-ticker]
-       [charts/portfolio-breakdown (:total-value kraken-portfolio-value) portfolio-balance]]
 
       ;; ── IB section ────────────────────────────────────────────────────
       [:div#dashboard-grid

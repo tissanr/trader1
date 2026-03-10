@@ -34,7 +34,7 @@ TWS / IB Gateway
 
 ## 3. Requirements
 
-- Java 8+ (project currently targets Java 8-compatible dependencies)
+- Java 17+ (required by shadow-cljs build tooling and modern Clojure dependencies; Java 21 LTS recommended)
 - Leiningen (this repository is Leiningen-based)
 - Interactive Brokers TWS or IB Gateway
 - IB API JAR file (`ibapi.jar`)
