@@ -19,13 +19,23 @@
 ;; ── Portfolio balance ────────────────────────────────────────────────────────
 
 (defn portfolio-balance []
-  (let [bal   (:portfolio-balance @app-state)
-        error (get-in @app-state [:errors :balance])
-        text  (when bal (str (:value bal) " " (or (:currency bal) "USD")))]
+  (let [rows  (:portfolio-balance @app-state)
+        error (get-in @app-state [:errors :balance])]
     [:section#portfolio-balance-cell
-     [:h2 "Portfolio Balance (USD)"]
+     [:h2 "Portfolio Balance"]
      (when error [:p.cell-error error])
-     [:p.value (or text "--")]]))
+     [:table.data-table
+      [:thead
+       [:tr [:th "Account"] [:th "Value"] [:th "Currency"]]]
+      [:tbody
+       (if (seq rows)
+         (for [row rows]
+           ^{:key (:account row)}
+           [:tr
+            [:td (:account row)]
+            [:td (:value row)]
+            [:td (:currency row)]])
+         [:tr [:td {:col-span 3 :class "empty"} "--"]])]]]))
 
 ;; ── Positions table ──────────────────────────────────────────────────────────
 

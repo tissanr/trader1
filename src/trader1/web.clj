@@ -74,12 +74,13 @@
    :event-buffer-size 2048
    :overflow-strategy :sliding})
 
-(defn- extract-net-liquidation [summary-values]
-  (some (fn [[_account tags]]
-          (when-let [entry (get tags "NetLiquidation")]
-            {:value (:value entry)
-             :currency (:currency entry)}))
-        summary-values))
+(defn- summary-values->rows [summary-values]
+  (vec (for [[account tags] summary-values
+             :let [entry (get tags "NetLiquidation")]
+             :when entry]
+         {:account  account
+          :value    (:value entry)
+          :currency (or (:currency entry) "USD")})))
 
 (defn- balance-timeout? [result]
   (or (= :timeout (:error result))
@@ -290,10 +291,10 @@
                                       :tags ["NetLiquidation"]
                                       :timeout-ms snapshot-timeout-ms}))]
         (when (:ok result)
-          (when-let [{:keys [value currency]} (extract-net-liquidation (:values result))]
-            (let [payload {:value value :currency (or currency "USD")}]
-              (swap! ui-state assoc :balance payload)
-              (broadcast! {:type "portfolio-balance" :data payload}))))
+          (let [rows (summary-values->rows (:values result))]
+            (when (seq rows)
+              (swap! ui-state assoc :balance rows)
+              (broadcast! {:type "portfolio-balance" :data rows}))))
         (ib-json-response {:ok    (:ok result)
                            :error (some-> (:error result) str)})))))
 
@@ -641,13 +642,13 @@
                                         :tags ["NetLiquidation"]
                                         :timeout-ms snapshot-timeout-ms}))]
                 (if (:ok result)
-                  (if-let [{:keys [value currency]} (extract-net-liquidation (:values result))]
-                    (do
-                      (clear-cell-error! :balance)
-                      (let [payload {:value value :currency (or currency "USD")}]
-                        (swap! ui-state assoc :balance payload)
-                        (broadcast! {:type "portfolio-balance" :data payload})))
-                    (set-cell-error! :balance "NetLiquidation missing"))
+                  (let [rows (summary-values->rows (:values result))]
+                    (if (seq rows)
+                      (do
+                        (clear-cell-error! :balance)
+                        (swap! ui-state assoc :balance rows)
+                        (broadcast! {:type "portfolio-balance" :data rows}))
+                      (set-cell-error! :balance "NetLiquidation missing")))
                   (set-cell-error! :balance (if (balance-timeout? result)
                                               "IB Timeout"
                                               "IB Error"))))
