@@ -10,6 +10,7 @@
             [org.httpkit.server :as httpkit]
             [ib.account :as ib.account]
             [ib.client :as ib.client]
+            [ib.contract :as ib.contract]
             [ib.market-data :as ib.market-data]
             [ib.open-orders :as ib.orders]
             [ib.positions :as ib.positions]
@@ -330,24 +331,23 @@
           conn     (ib-conn)]
       (if-not conn
         (ib-json-response {:ok false :message "Not connected to IB"})
-        ;; Step 1: resolve conId via reqContractDetails
-        (let [cd-result (async/<!! (ib.market-data/contract-details-snapshot!
-                                     conn symbol
-                                     {:exchange   exchange
-                                      :currency   currency
-                                      :timeout-ms snapshot-timeout-ms}))]
+        ;; Step 1: resolve contract via ib.contract/contract-details-snapshot!
+        (let [cd-result (async/<!! (ib.contract/contract-details-snapshot!
+                                     conn
+                                     {:symbol   symbol
+                                      :exchange exchange
+                                      :currency currency}
+                                     {:timeout-ms snapshot-timeout-ms}))]
           (if-not (:ok cd-result)
             (ib-json-response cd-result)
-            ;; Step 2: market data snapshot using the resolved conId
-            (let [con-id       (get-in cd-result [:details :con-id])
-                  primary-exch (get-in cd-result [:details :primary-exch])]
-              (ib-json-response (async/<!! (ib.market-data/market-data-snapshot!
-                                             conn symbol
-                                             {:exchange     exchange
-                                              :primary-exch primary-exch
-                                              :currency     currency
-                                              :con-id       con-id
-                                              :timeout-ms   snapshot-timeout-ms}))))))))
+            (let [contract (-> cd-result :contracts first :contract)]
+              (if-not contract
+                (ib-json-response {:ok false :error :no-results :symbol symbol})
+                ;; Step 2: market data snapshot using the resolved contract map
+                (ib-json-response (async/<!! (ib.market-data/contract-details-snapshot!
+                                               conn
+                                               (:symbol contract)
+                                               (assoc contract :timeout-ms snapshot-timeout-ms))))))))))
     (catch Throwable t
       (ib-json-response {:ok false :error :exception
                          :message (str (class t) ": " (.getMessage t))}))))
@@ -437,8 +437,8 @@
   (POST "/ib/refresh/positions" req (if (get-in req [:session :identity]) (ib-refresh-positions-handler req) {:status 401 :body "Unauthorized"}))
   (POST "/ib/refresh/orders"    req (if (get-in req [:session :identity]) (ib-refresh-orders-handler req)    {:status 401 :body "Unauthorized"}))
   (POST "/ib/quote"             req (if (get-in req [:session :identity]) (ib-quote-handler req)             {:status 401 :body "Unauthorized"}))
-  (POST "/ib/order"             req (if (get-in req [:session :identity]) (ib-place-order-handler req)        {:status 401 :body "Unauthorized"}))
-  (POST "/ib/account-summary"  req (if (get-in req [:session :identity]) (ib-account-summary-handler req)    {:status 401 :body "Unauthorized"}))
+  (POST "/ib/order"             req (if (get-in req [:session :identity]) (ib-place-order-handler req)       {:status 401 :body "Unauthorized"}))
+  (POST "/ib/account-summary"   req (if (get-in req [:session :identity]) (ib-account-summary-handler req)   {:status 401 :body "Unauthorized"}))
   (route/resources "/")
   (route/not-found "Not found"))
 
