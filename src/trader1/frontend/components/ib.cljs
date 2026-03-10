@@ -102,7 +102,7 @@
                             ["Refresh Balance"     "/ib/refresh/balance"]
                             ["Refresh Positions"   "/ib/refresh/positions"]
                             ["Refresh Orders"      "/ib/refresh/orders"]
-                            ["AAPL Quote"          "/ib/quote?symbol=AAPL"]]]
+                            ["AAPL Quote"          "/ib/quote?symbol=AAPL&exchange=SMART&primaryExch=ISLAND&currency=USD"]]]
         ^{:key label}
         [:button.ib-btn {:on-click #(ib-post! action)} label])]
      [:div.ib-panels

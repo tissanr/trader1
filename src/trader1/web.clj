@@ -323,11 +323,18 @@
           (ib-json-response {:ok false :error (some-> (:error result) str)}))))))
 
 (defn- ib-quote-handler [request]
-  (let [symbol (or (get-in request [:params :symbol]) "AAPL")
-        conn   (ib-conn)]
+  (let [symbol       (or (get-in request [:params :symbol])       "AAPL")
+        exchange     (or (get-in request [:params :exchange])     "SMART")
+        primary-exch (not-empty (get-in request [:params :primaryExch]))
+        currency     (or (get-in request [:params :currency])     "USD")
+        conn         (ib-conn)]
     (if-not conn
       (ib-json-response {:ok false :message "Not connected to IB"})
-      (ib-json-response (async/<!! (ib.market-data/market-data-snapshot! conn symbol))))))
+      (ib-json-response (async/<!! (ib.market-data/market-data-snapshot!
+                                     conn symbol
+                                     {:exchange     exchange
+                                      :primary-exch primary-exch
+                                      :currency     currency}))))))
 
 (defroutes app-routes
   (GET  "/"          _   (resp/redirect "/dashboard"))
@@ -646,3 +653,4 @@
         (stop-http)
         (async/close! kraken-ch)
         (stop-ib-runtime!)))))
+ 
