@@ -353,29 +353,45 @@
                          :message (str (class t) ": " (.getMessage t))}))))
 
 (defn- ib-place-order-handler [request]
-  (let [symbol       (or (get-in request [:params :symbol])       "AAPL")
-        exchange     (or (get-in request [:params :exchange])     "SMART")
-        primary-exch (not-empty (get-in request [:params :primaryExch]))
-        currency     (or (get-in request [:params :currency])     "USD")
-        action       (or (get-in request [:params :action])       "BUY")
-        quantity     (Long/parseLong (or (get-in request [:params :quantity]) "1"))
-        conn         (ib-conn)]
+  (let [symbol   (or (get-in request [:params :symbol])   "AAPL")
+        exchange (or (get-in request [:params :exchange]) "SMART")
+        currency (or (get-in request [:params :currency]) "USD")
+        action   (or (get-in request [:params :action])   "BUY")
+        quantity (Long/parseLong (or (get-in request [:params :quantity]) "1"))
+        conn     (ib-conn)]
     (if-not conn
       (ib-json-response {:ok false :message "Not connected to IB"})
       (try
-        (let [order-id (ib.client/place-order!
-                         conn
-                         {:contract {:symbol       symbol
-                                     :sec-type     "STK"
-                                     :exchange     exchange
-                                     :primary-exch primary-exch
-                                     :currency     currency}
-                          :order    {:action         action
-                                     :order-type     "MKT"
-                                     :total-quantity quantity
-                                     :transmit       true}})]
-          (ib-json-response {:ok true :order-id order-id
-                             :symbol symbol :action action :quantity quantity}))
+        ;; Step 1: resolve conId via ib.contract/contract-details-snapshot!
+        (let [cd-result (async/<!! (ib.contract/contract-details-snapshot!
+                                     conn
+                                     {:symbol   symbol
+                                      :exchange exchange
+                                      :currency currency}
+                                     {:timeout-ms snapshot-timeout-ms}))]
+          (if-not (:ok cd-result)
+            (ib-json-response cd-result)
+            (let [contract (-> cd-result :contracts first :contract)]
+              (if-not contract
+                (ib-json-response {:ok false :error :no-results :symbol symbol})
+                ;; Step 2: place order using resolved conId and primary exchange
+                (let [con-id       (:conId contract)
+                      primary-exch (:exchange contract)
+                      order-id     (ib.client/place-order!
+                                     conn
+                                     {:contract {:symbol       symbol
+                                                 :sec-type     "STK"
+                                                 :exchange     "SMART"
+                                                 :primary-exch primary-exch
+                                                 :currency     currency
+                                                 :con-id       con-id}
+                                      :order    {:action         action
+                                                 :order-type     "MKT"
+                                                 :total-quantity quantity
+                                                 :transmit       true}})]
+                  (ib-json-response {:ok true :order-id order-id
+                                     :symbol symbol :action action :quantity quantity
+                                     :con-id con-id}))))))
         (catch Exception e
           (ib-json-response {:ok false :message (.getMessage e)}))))))
 
