@@ -336,6 +336,70 @@
                                       :primary-exch primary-exch
                                       :currency     currency}))))))
 
+(defn- ib-place-order-handler [request]
+  (let [symbol       (or (get-in request [:params :symbol])       "AAPL")
+        exchange     (or (get-in request [:params :exchange])     "SMART")
+        primary-exch (not-empty (get-in request [:params :primaryExch]))
+        currency     (or (get-in request [:params :currency])     "USD")
+        action       (or (get-in request [:params :action])       "BUY")
+        quantity     (Long/parseLong (or (get-in request [:params :quantity]) "1"))
+        conn         (ib-conn)]
+    (if-not conn
+      (ib-json-response {:ok false :message "Not connected to IB"})
+      (try
+        (let [order-id (ib.client/place-order!
+                         conn
+                         {:contract {:symbol       symbol
+                                     :sec-type     "STK"
+                                     :exchange     exchange
+                                     :primary-exch primary-exch
+                                     :currency     currency}
+                          :order    {:action         action
+                                     :order-type     "MKT"
+                                     :total-quantity quantity
+                                     :transmit       true}})]
+          (ib-json-response {:ok true :order-id order-id
+                             :symbol symbol :action action :quantity quantity}))
+        (catch Exception e
+          (ib-json-response {:ok false :message (.getMessage e)}))))))
+
+(defonce ^:private acct-summary-req-id (atom 700000))
+
+(defn- ib-account-summary-handler [_request]
+  (let [conn (ib-conn)]
+    (if-not conn
+      (ib-json-response {:ok false :message "Not connected to IB"})
+      (let [rid        (swap! acct-summary-req-id inc)
+            sub-ch     (ib.client/subscribe-events! conn {:buffer-size 128})
+            timeout-ch (async/timeout 10000)]
+        (try
+          (ib.client/req-account-summary! conn {:req-id rid})
+          (loop [rows []]
+            (let [[val port] (async/alts!! [sub-ch timeout-ch])]
+              (cond
+                (= port timeout-ch)
+                (ib-json-response {:ok false :error "timeout" :rows rows})
+
+                (nil? val)
+                (ib-json-response {:ok false :error "stream-closed" :rows rows})
+
+                (and (= :ib/account-summary-end (:type val))
+                     (= rid (:req-id val)))
+                (ib-json-response {:ok true :rows rows})
+
+                (and (= :ib/account-summary (:type val))
+                     (= rid (:req-id val)))
+                (recur (conj rows {:account  (:account val)
+                                   :tag      (:tag val)
+                                   :value    (:value val)
+                                   :currency (:currency val)}))
+
+                :else (recur rows))))
+          (finally
+            (try (ib.client/cancel-account-summary! conn rid) (catch Throwable _ nil))
+            (ib.client/unsubscribe-events! conn sub-ch)
+            (async/close! sub-ch)))))))
+
 (defroutes app-routes
   (GET  "/"          _   (resp/redirect "/dashboard"))
   (GET  "/login"     _   (html-response (login-page nil)))
@@ -357,6 +421,8 @@
   (POST "/ib/refresh/positions" req (if (get-in req [:session :identity]) (ib-refresh-positions-handler req) {:status 401 :body "Unauthorized"}))
   (POST "/ib/refresh/orders"    req (if (get-in req [:session :identity]) (ib-refresh-orders-handler req)    {:status 401 :body "Unauthorized"}))
   (POST "/ib/quote"             req (if (get-in req [:session :identity]) (ib-quote-handler req)             {:status 401 :body "Unauthorized"}))
+  (POST "/ib/order"             req (if (get-in req [:session :identity]) (ib-place-order-handler req)        {:status 401 :body "Unauthorized"}))
+  (POST "/ib/account-summary"  req (if (get-in req [:session :identity]) (ib-account-summary-handler req)    {:status 401 :body "Unauthorized"}))
   (route/resources "/")
   (route/not-found "Not found"))
 
