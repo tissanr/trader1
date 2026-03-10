@@ -315,7 +315,7 @@
     (if-not conn
       (ib-json-response {:ok false :message "Not connected to IB"})
       (let [result (async/<!! (ib.orders/open-orders-snapshot!
-                                conn {:mode :open :timeout-ms snapshot-timeout-ms}))]
+                                conn {:mode :all :timeout-ms snapshot-timeout-ms}))]
         (if (:ok result)
           (let [rows (mapv to-order-row (:orders result))]
             (swap! ui-state assoc :orders rows)
