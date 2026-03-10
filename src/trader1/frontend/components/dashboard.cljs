@@ -30,7 +30,7 @@
       ;; ── Portfolio charts ──────────────────────────────────────────────
       [:div#portfolio-charts
        [charts/asset-distribution kraken-balance kraken-ticker]
-       [charts/portfolio-breakdown (:total-usd kraken-portfolio-value) portfolio-balance]]
+       [charts/portfolio-breakdown (:total-value kraken-portfolio-value) portfolio-balance]]
 
       ;; ── IB section ────────────────────────────────────────────────────
       [:div#dashboard-grid

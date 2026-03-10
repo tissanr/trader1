@@ -148,10 +148,31 @@ section h2 {
   color: #f0c040;
 }
 
-#kraken-portfolio-cell .value {
-  font-size: 1.8rem;
+/* Kraken portfolio value — three-row breakdown */
+.kp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: .45rem 0;
+  border-bottom: 1px solid #1f1f1f;
+}
+
+.kp-row:last-child { border-bottom: none; }
+
+.kp-label {
+  color: #888;
+  font-size: .82rem;
+}
+
+.kp-total {
+  font-size: 1.6rem;
   font-weight: bold;
   color: #f0c040;
+}
+
+.kp-amount {
+  font-size: .95rem;
+  color: #d0d0d0;
 }
 
 #kraken-ticker-cell .row {

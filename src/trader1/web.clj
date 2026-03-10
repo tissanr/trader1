@@ -362,22 +362,70 @@
     (catch Exception _
       nil)))
 
-(defn- compute-kraken-portfolio-usd [balance usd-pairs ticker]
-  (when (and balance usd-pairs ticker)
-    (reduce (fn [total [k v]]
-              (let [asset  (name k)
-                    amount (Double/parseDouble v)]
-                (if (zero? amount)
-                  total
-                  (if (= asset "ZUSD")
-                    (+ total amount)
-                    (if-let [{:keys [canonical]} (get usd-pairs asset)]
-                      (if-let [pair-data (get ticker (keyword canonical))]
-                        (+ total (* amount (Double/parseDouble (first (:c pair-data)))))
-                        total)
-                      total)))))
-            0.0
-            balance)))
+(defn- fiat-asset?
+  "Returns true if the Kraken asset code represents a fiat currency.
+  Kraken prefixes all fiat codes with 'Z' (e.g. ZUSD, ZEUR, ZGBP)."
+  [asset-name]
+  (= \Z (first asset-name)))
+
+(defn- calculate-cash-usd
+  "Computes total cash value in USD from all fiat balances in the Kraken balance map.
+
+  Contract:
+  - balance   : map of keyword asset-code → string amount (from kraken/request-balance)
+  - usd-pairs : map of string asset-code → {:canonical pair-name ...} (from kraken/asset-usd-pairs)
+  - ticker    : map of keyword pair-name → {:c [last-price ...] ...} (from kraken/request-ticker)
+
+  Fiat assets are identified by a leading 'Z' in their Kraken code.
+  - ZUSD is taken at face value.
+  - Other fiat (e.g. ZEUR, ZGBP) are converted to USD using the Kraken ticker for
+    their USD pair. Falls back to face value if no rate is available.
+
+  Returns total cash as a double (0.0 when balance is empty or all amounts are zero)."
+  [balance usd-pairs ticker]
+  (reduce (fn [total [k v]]
+            (let [asset  (name k)
+                  amount (Double/parseDouble v)]
+              (if (and (fiat-asset? asset) (pos? amount))
+                (if (= asset "ZUSD")
+                  (+ total amount)
+                  (if-let [{:keys [canonical]} (get usd-pairs asset)]
+                    (if-let [pair-data (get ticker (keyword canonical))]
+                      (+ total (* amount (Double/parseDouble (first (:c pair-data)))))
+                      (+ total amount))    ; no rate available — fall back to face value
+                    (+ total amount)))     ; not in usd-pairs — fall back to face value
+                total)))
+          0.0
+          (or balance {})))
+
+(defn- calculate-positions-value
+  "Computes the total USD value of non-fiat (crypto/token) positions in the
+  Kraken balance map.
+
+  Contract:
+  - balance   : map of keyword asset-code → string amount (from kraken/request-balance)
+  - usd-pairs : map of string asset-code → {:canonical pair-name ...} (from kraken/asset-usd-pairs)
+  - ticker    : map of keyword pair-name → {:c [last-price ...] ...} (from kraken/request-ticker)
+
+  Non-fiat assets are those whose Kraken code does NOT start with 'Z'
+  (e.g. XXBT for BTC, XETH for ETH). Each asset is priced in USD via the
+  Kraken ticker using its canonical USD pair. Assets with no known USD pair
+  are excluded from the total.
+
+  Returns total positions value as a double (0.0 when no non-fiat assets are found)."
+  [balance usd-pairs ticker]
+  (reduce (fn [total [k v]]
+            (let [asset  (name k)
+                  amount (Double/parseDouble v)]
+              (if (and (not (fiat-asset? asset)) (pos? amount))
+                (if-let [{:keys [canonical]} (get usd-pairs asset)]
+                  (if-let [pair-data (get ticker (keyword canonical))]
+                    (+ total (* amount (Double/parseDouble (first (:c pair-data)))))
+                    total)
+                  total)
+                total)))
+          0.0
+          (or balance {})))
 
 (defn- start-event-forwarder! [conn events-ch stop-ch]
   (async/go-loop []
@@ -448,11 +496,15 @@
                                 (let [t (fetch-with-fallback #(kraken/request-ticker kraken-ticker-pairs))]
                                   (reset! last-kraken-ticker now)
                                   t)))
-              kraken-portfolio-usd (when kraken-balance
-                                       (compute-kraken-portfolio-usd
-                                         kraken-balance
-                                         @kraken-usd-pairs
-                                         (or kraken-ticker (:kraken-ticker @ui-state))))]
+              effective-ticker      (or kraken-ticker (:kraken-ticker @ui-state))
+              kraken-portfolio-value (when (and kraken-balance @kraken-usd-pairs effective-ticker)
+                                       (let [cash      (calculate-cash-usd
+                                                          kraken-balance @kraken-usd-pairs effective-ticker)
+                                             positions (calculate-positions-value
+                                                          kraken-balance @kraken-usd-pairs effective-ticker)]
+                                         {:total-value     (format "%.2f" (+ cash positions))
+                                          :positions-value (format "%.2f" positions)
+                                          :cash-usd        (format "%.2f" cash)}))]
           (when kraken-balance
             (swap! ui-state assoc :kraken-balance kraken-balance)
             (broadcast! {:type "kraken-balance" :data kraken-balance}))
@@ -462,10 +514,9 @@
           (when kraken-ticker
             (swap! ui-state assoc :kraken-ticker kraken-ticker)
             (broadcast! {:type "kraken-ticker" :data kraken-ticker}))
-          (when kraken-portfolio-usd
-            (let [payload {:total-usd (format "%.2f" kraken-portfolio-usd)}]
-              (swap! ui-state assoc :kraken-portfolio-value payload)
-              (broadcast! {:type "kraken-portfolio-value" :data payload})))))
+          (when kraken-portfolio-value
+            (swap! ui-state assoc :kraken-portfolio-value kraken-portfolio-value)
+            (broadcast! {:type "kraken-portfolio-value" :data kraken-portfolio-value}))))
       (let [[_ port] (async/alts! [(async/timeout refresh-ms) stop-ch])]
         (when-not (= port stop-ch)
           (recur))))))
