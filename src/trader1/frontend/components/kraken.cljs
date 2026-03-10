@@ -7,11 +7,21 @@
         (.toLocaleString "en-US" #js {:minimumFractionDigits 2 :maximumFractionDigits 2}))))
 
 (defn portfolio-value []
-  (let [pv   (:kraken-portfolio-value @app-state)
-        text (some-> pv :total-usd fmt-price (str " USD"))]
+  (let [pv    (:kraken-portfolio-value @app-state)
+        total (some-> pv :total-value     fmt-price)
+        pos   (some-> pv :positions-value fmt-price)
+        cash  (some-> pv :cash-usd        fmt-price)]
     [:section#kraken-portfolio-cell
      [:h2 "Kraken Portfolio Value"]
-     [:p.value (or text "-- USD")]]))
+     [:div.kp-row
+      [:span.kp-label "Total Portfolio"]
+      [:span.kp-total (if total (str "$" total) "--")]]
+     [:div.kp-row
+      [:span.kp-label "Positions"]
+      [:span.kp-amount (if pos (str "$" pos) "--")]]
+     [:div.kp-row
+      [:span.kp-label "Cash (USD)"]
+      [:span.kp-amount (if cash (str "$" cash) "--")]]]))
 
 (defn ticker []
   (let [t          (:kraken-ticker @app-state)
