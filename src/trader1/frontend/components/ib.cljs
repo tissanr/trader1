@@ -26,16 +26,17 @@
      (when error [:p.cell-error error])
      [:table.data-table
       [:thead
-       [:tr [:th "Account"] [:th "Value"] [:th "Currency"]]]
+       [:tr [:th "Account"] [:th "Net Liquidation"] [:th "Buying Power"] [:th "Currency"]]]
       [:tbody
        (if (seq rows)
          (for [row rows]
            ^{:key (:account row)}
            [:tr
             [:td (:account row)]
-            [:td (:value row)]
+            [:td (:net-liquidation row)]
+            [:td (:buying-power row)]
             [:td (:currency row)]])
-         [:tr [:td {:col-span 3 :class "empty"} "--"]])]]]))
+         [:tr [:td {:col-span 4 :class "empty"} "--"]])]]]))
 
 ;; ── Positions table ──────────────────────────────────────────────────────────
 

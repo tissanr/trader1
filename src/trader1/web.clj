@@ -76,11 +76,13 @@
 
 (defn- summary-values->rows [summary-values]
   (vec (for [[account tags] summary-values
-             :let [entry (get tags "NetLiquidation")]
-             :when entry]
-         {:account  account
-          :value    (:value entry)
-          :currency (or (:currency entry) "USD")})))
+             :let [nl (get tags "NetLiquidation")
+                   bp (get tags "BuyingPower")]
+             :when (or nl bp)]
+         {:account         account
+          :net-liquidation (some-> nl :value)
+          :buying-power    (some-> bp :value)
+          :currency        (or (some-> nl :currency) (some-> bp :currency) "USD")})))
 
 (defn- balance-timeout? [result]
   (or (= :timeout (:error result))
@@ -288,7 +290,7 @@
       (ib-json-response {:ok false :message "Not connected to IB"})
       (let [result (async/<!! (ib.account/account-summary-snapshot!
                                 conn {:group "All"
-                                      :tags ["NetLiquidation"]
+                                      :tags ["NetLiquidation" "BuyingPower"]
                                       :timeout-ms snapshot-timeout-ms}))]
         (when (:ok result)
           (let [rows (summary-values->rows (:values result))]
@@ -639,7 +641,7 @@
               (let [result (async/<! (ib.account/account-summary-snapshot!
                                        conn
                                        {:group "All"
-                                        :tags ["NetLiquidation"]
+                                        :tags ["NetLiquidation" "BuyingPower"]
                                         :timeout-ms snapshot-timeout-ms}))]
                 (if (:ok result)
                   (let [rows (summary-values->rows (:values result))]

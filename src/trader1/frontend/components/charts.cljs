@@ -73,7 +73,7 @@
   [kraken-total-usd ib-balance]
   (let [k-val (some-> kraken-total-usd js/parseFloat)
         i-val (when (seq ib-balance)
-                (reduce + 0 (map #(js/parseFloat (:value %)) ib-balance)))
+                (reduce + 0 (map #(js/parseFloat (:net-liquidation %)) ib-balance)))
         slices (cond-> []
                  (and k-val (pos? k-val)) (conj {:name "Kraken" :value k-val})
                  (and i-val (pos? i-val)) (conj {:name "IB"     :value i-val}))]
