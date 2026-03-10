@@ -102,7 +102,7 @@
                             ["Refresh Balance"     "/ib/refresh/balance"]
                             ["Refresh Positions"   "/ib/refresh/positions"]
                             ["Refresh Orders"      "/ib/refresh/orders"]
-                            ["AAPL Quote"          "/ib/quote?symbol=AAPL&exchange=SMART&primaryExch=ISLAND&currency=USD"]
+                            ["AAPL Quote"          "/ib/quote?symbol=AAPL&exchange=SMART&currency=USD"]
                             ["Buy 10 AAPL (MKT)"   "/ib/order?symbol=AAPL&exchange=SMART&primaryExch=ISLAND&currency=USD&action=BUY&quantity=10"]
                             ["Account Summary"      "/ib/account-summary"]]]
         ^{:key label}
