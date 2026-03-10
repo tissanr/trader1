@@ -181,77 +181,8 @@
      [:title "Trader1 - Dashboard"]
      (include-css "/style.css")]
     [:body
-     [:header
-      [:h1 "Trader1"]
-      [:nav
-       [:a {:href "/settings"} "Settings"]
-       [:a {:href "/logout"} "Logout"]]]
-     [:main
-      [:div#kraken-grid
-       [:section#kraken-portfolio-cell
-        [:h2 "Kraken Portfolio Value"]
-        [:p.value#kraken-portfolio-value "-- USD"]]
-       [:section#kraken-ticker-cell
-        [:h2 "Kraken Ticker (XBT/USD)"]
-        [:div.row [:span.label "Last"] [:span#kraken-ticker-last "--"]]
-        [:div.row [:span.label "Ask"]  [:span#kraken-ticker-ask "--"]]
-        [:div.row [:span.label "Bid"]  [:span#kraken-ticker-bid "--"]]]
-       [:section#kraken-balance-cell
-        [:h2 "Kraken Balance"]
-        [:ul#kraken-balance-list [:li "Connecting..."]]]
-       [:section#kraken-orders-cell
-        [:h2 "Kraken Open Orders"]
-        [:ul#kraken-orders-list [:li "Connecting..."]]]]
-      [:div#dashboard-grid
-       [:section#portfolio-balance-cell
-        [:h2 "Portfolio Balance (USD)"]
-        [:p.value#portfolio-balance-value "--"]]
-       [:section#dashboard-empty-cell {:aria-hidden "true"}
-        [:h2 ""]]
-       [:section#positions-cell
-        [:h2 "Positionen"]
-        [:table.data-table
-         [:thead
-          [:tr
-           [:th "Symbol"]
-           [:th "SecType"]
-           [:th "Currency"]
-           [:th "Position"]
-           [:th "AvgCost"]]]
-         [:tbody#positions-body
-          [:tr [:td {:colspan "5" :class "empty"} "Connecting..."]]]]]
-       [:section#orders-cell
-        [:h2 "Offene Orders"]
-        [:table.data-table
-         [:thead
-         [:tr
-           [:th "Symbol"]
-           [:th "Action"]
-           [:th "OrderType"]
-           [:th "Quantity"]
-           [:th "LimitPrice"]
-           [:th "Status"]
-           [:th "Filled"]
-          [:th "Remaining"]]]
-         [:tbody#orders-body
-          [:tr [:td {:colspan "8" :class "empty"} "Connecting..."]]]]]]
-      [:section#ib-debug
-       [:h2 "IB API Test"]
-       [:div#ib-buttons
-        [:button.ib-btn {:data-action "/ib/ping"}              "Ping IB"]
-        [:button.ib-btn {:data-action "/ib/reconnect"}         "Reconnect IB"]
-        [:button.ib-btn {:data-action "/ib/refresh/balance"}   "Refresh Balance"]
-        [:button.ib-btn {:data-action "/ib/refresh/positions"} "Refresh Positions"]
-        [:button.ib-btn {:data-action "/ib/refresh/orders"}    "Refresh Orders"]
-        [:button.ib-btn {:data-action "/ib/quote?symbol=AAPL"} "AAPL Quote"]]
-       [:div.ib-panels
-        [:div.ib-panel
-         [:span.ib-panel-label "Last response"]
-         [:pre#ib-debug-output "Click a button to test the IB API."]]
-        [:div.ib-panel
-         [:span.ib-panel-label "Live IB messages"]
-         [:div#ib-live-log]]]]]
-     (include-js "/app.js")]))
+     [:div#app]
+     (include-js "/js/main.js")]))
 
 (defn- interval-option [name-attr current-ms value-ms label]
   [:option {:value (if (nil? value-ms) "manual" (str value-ms))

@@ -1,6 +1,6 @@
 (defproject trader1 "0.1.0-SNAPSHOT"
   :description "Interactive Brokers portfolio dashboard with real-time WebSocket updates"
-  :url "https://github.com/reiterstephan-tech/trader1"
+  :url "https://github.com/tissanr/trader1"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.12.0"]
@@ -22,7 +22,7 @@
   :main ^:skip-aot trader1.core
   :target-path "target/%s"
   :profiles {:dev     {:dependencies [[ring/ring-devel "1.12.2"]
-                                     [nrepl "1.3.1"]
-                                     [cider/cider-nrepl "0.52.1"]]
-                      :repl-options {:nrepl-middleware [cider.nrepl/cider-middleware]}}
+                                      [nrepl "1.3.1"]
+                                      [cider/cider-nrepl "0.52.1"]]
+                       :repl-options {:nrepl-middleware [cider.nrepl/cider-middleware]}}
              :uberjar {:aot :all}})

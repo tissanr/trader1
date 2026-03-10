@@ -359,9 +359,63 @@ li.empty {
 .ib-log-connection { color: #70a8d0; }
 .ib-log-cell-error { color: #d09050; }
 
+/* ── Disconnected badge (React-rendered) ─────────────────────────── */
+.disconnected-badge {
+  background: #c0392b;
+  color: #fff;
+  padding: .25rem .7rem;
+  border-radius: 4px;
+  font-size: .75rem;
+  margin-right: .5rem;
+}
+
+/* ── Portfolio charts ────────────────────────────────────────────── */
+#portfolio-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.chart-card {
+  background: #1a1a1a;
+  border: 1px solid #252525;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.chart-title {
+  font-size: .75rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: .6rem;
+  font-weight: 600;
+}
+
+.chart-empty {
+  color: #555;
+  font-size: .85rem;
+  font-style: italic;
+  padding: 2rem 0;
+  text-align: center;
+}
+
+/* Recharts legend + tooltip dark-theme overrides */
+.recharts-default-tooltip {
+  background: #1a1a1a !important;
+  border-color: #333 !important;
+  color: #e0e0e0 !important;
+}
+
+.recharts-legend-item-text {
+  color: #ccc !important;
+}
+
 @media (max-width: 760px) {
   #kraken-grid,
-  #dashboard-grid {
+  #dashboard-grid,
+  #portfolio-charts {
     grid-template-columns: 1fr;
   }
 

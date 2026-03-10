@@ -33,3 +33,8 @@ pom.xml.asc
 
 # Claude Code
 /.claude
+
+# npm / ClojureScript build output
+/node_modules
+/resources/public/js
+/.shadow-cljs
