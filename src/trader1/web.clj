@@ -1,5 +1,6 @@
 (ns trader1.web
   (:require [clojure.core.async :as async]
+            [clojure.string :as str]
             [compojure.core :refer [defroutes GET POST]]
             [compojure.route :as route]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
@@ -26,6 +27,7 @@
   (atom {:balance nil
          :positions []
          :orders []
+         :orders-state {:status "idle"}
          :kraken-balance nil
          :kraken-orders nil
          :kraken-portfolio-value nil
@@ -58,10 +60,27 @@
   (swap! ui-state assoc-in [:errors cell] nil)
   (broadcast! {:type "cell-error" :data {:cell (name cell) :message nil}}))
 
+(defn- set-orders-state!
+  ([status]
+   (set-orders-state! status nil))
+  ([status message]
+   (let [data (cond-> {:status status}
+                (some? message) (assoc :message message)
+                (#{"ready" "timeout" "error"} status) (assoc :order-count (count (:orders @ui-state)))
+                (= "ready" status) (assoc :updated-at (System/currentTimeMillis)))]
+     (swap! ui-state assoc :orders-state data)
+     (broadcast! {:type "orders-state" :data data}))))
+
 (defn- set-disconnected! []
-  (swap! ui-state assoc :connection :disconnected)
+  (swap! ui-state assoc :connection :disconnected
+         :orders []
+         :orders-state {:status "disconnected"
+                        :message "Disconnected from IB"})
   (doseq [cell [:balance :positions :orders]]
     (set-cell-error! cell "Disconnected"))
+  (broadcast! {:type "orders" :data []})
+  (broadcast! {:type "orders-state" :data {:status "disconnected"
+                                           :message "Disconnected from IB"}})
   (broadcast! {:type "connection" :data {:status "disconnected"}}))
 
 (defn- mark-connected! []
@@ -95,8 +114,8 @@
 
 (defn- balance-timeout? [result]
   (or (= :timeout (:error result))
-      (= :timeout (get-in result [:ib-error :reason]))
-      (= 504 (get-in result [:ib-error :code]))))
+     (= :timeout (get-in result [:ib-error :reason]))
+     (= 504 (get-in result [:ib-error :code]))))
 
 (defn- positions-timeout? [result]
   (or (= :timeout (:reason result))
@@ -109,12 +128,25 @@
 (defn- order-status-for [order-id]
   (get @last-order-status order-id {}))
 
+(defn- benign-ib-message? [message]
+  (let [message' (some-> message str/lower-case)]
+    (boolean
+     (and message'
+          (or (str/includes? message' "data farm connection is broken")
+              (str/includes? message' "data farm connection is ok")
+              (str/includes? message' "hmds data farm connection is broken")
+              (str/includes? message' "hmds data farm connection is ok")
+              (str/includes? message' "sec-def data farm connection is broken")
+              (str/includes? message' "sec-def data farm connection is ok"))))))
+
 (defn- to-order-row [order-event]
   (let [{:keys [order-id contract order order-state]} order-event
         status-from-stream (order-status-for order-id)]
     (validated
      ::specs/order-row
-     {:symbol (or (:symbol contract) "--")
+     {:order-id (or order-id "--")
+      :account-id (or (:account order-event) "--")
+      :symbol (or (:symbol contract) "--")
       :action (or (:action order) "--")
       :order-type (or (:orderType order) "--")
       :quantity (or (:totalQuantity order) "--")
@@ -138,7 +170,7 @@
      "position row")))
 
 (defn- push-state-to-client! [ch]
-  (let [{:keys [balance positions orders errors connection
+  (let [{:keys [balance positions orders orders-state errors connection
                 kraken-balance kraken-orders kraken-portfolio-value kraken-ticker]} @ui-state]
     (send-payload! ch "connection" {:status (name connection)})
     (send-payload! ch "kraken-balance" kraken-balance)
@@ -148,6 +180,7 @@
     (send-payload! ch "portfolio-balance" balance)
     (send-payload! ch "positions" positions)
     (send-payload! ch "orders" orders)
+    (send-payload! ch "orders-state" orders-state)
     (doseq [[cell message] errors]
       (send-payload! ch "cell-error" {:cell (name cell)
                                       :message message}))))
@@ -326,15 +359,27 @@
   (let [conn (ib-conn)]
     (if-not conn
       (ib-json-response {:ok false :message "Not connected to IB"})
-      (let [result (async/<!! (ib.orders/open-orders-snapshot!
-                                conn {:mode :all
-                                      :timeout-ms (ib-snapshot-timeout-ms)}))]
-        (if (:ok result)
-          (let [rows (mapv to-order-row (:orders result))]
-            (swap! ui-state assoc :orders rows)
-            (broadcast! {:type "orders" :data rows})
-            (ib-json-response {:ok true :rows rows}))
-          (ib-json-response {:ok false :error (some-> (:error result) str)}))))))
+      (do
+        (set-orders-state! "loading" "Refreshing open orders...")
+        (let [result (async/<!! (ib.orders/open-orders-snapshot!
+                                  conn {:mode :all
+                                        :timeout-ms (ib-snapshot-timeout-ms)}))]
+          (if (:ok result)
+            (let [rows (mapv to-order-row (:orders result))]
+              (clear-cell-error! :orders)
+              (swap! ui-state assoc :orders rows)
+              (set-orders-state! "ready")
+              (broadcast! {:type "orders" :data rows})
+              (ib-json-response {:ok true :rows rows}))
+            (do
+              (set-cell-error! :orders (if (orders-timeout? result)
+                                         "IB Timeout"
+                                         "IB Error"))
+              (set-orders-state! (if (orders-timeout? result) "timeout" "error")
+                                 (if (orders-timeout? result)
+                                   "Open orders snapshot timed out."
+                                   "Open orders snapshot failed."))
+              (ib-json-response {:ok false :error (some-> (:error result) str)}))))))))
 
 (defn- ib-quote-handler [request]
   (try
@@ -357,10 +402,18 @@
               (if-not contract
                 (ib-json-response {:ok false :error :no-results :symbol symbol})
                 ;; Step 2: market data snapshot using the resolved contract map
-                (ib-json-response (async/<!! (ib.market-data/contract-details-snapshot!
-                                               conn
-                                               (:symbol contract)
-                                               (assoc contract :timeout-ms (ib-snapshot-timeout-ms)))))))))))
+                (ib-json-response
+                 (async/<!! (ib.market-data/market-data-snapshot!
+                              conn
+                              (:symbol contract)
+                              {:con-id (:conId contract)
+                               :sec-type (:secType contract)
+                               :exchange (or (:primaryExch contract)
+                                             (:exchange contract)
+                                             exchange)
+                               :primary-exch (:primaryExch contract)
+                               :currency (or (:currency contract) currency)
+                               :timeout-ms (ib-snapshot-timeout-ms)})))))))))
     (catch Throwable t
       (ib-json-response {:ok false :error :exception
                          :message (str (class t) ": " (.getMessage t))}))))
@@ -564,9 +617,10 @@
 
         (= :ib/error (:type evt))
         (do
-          (println "IB Error Event:" (select-keys evt [:code :message :request-id]))
           (let [msg (or (:message evt) "IB Error")]
-            (broadcast! {:type "ib-error" :data {:message msg}})
+            (when-not (benign-ib-message? msg)
+              (println "IB Error Event:" (select-keys evt [:code :message :request-id]))
+              (broadcast! {:type "ib-error" :data {:message msg}}))
             (when (= :disconnected (:connection @ui-state))
               (set-disconnected!)))
           (recur))
@@ -695,6 +749,8 @@
         (when (compare-and-set! orders-in-flight? false true)
           (async/go
             (try
+              (when (contains? #{"idle" "disconnected"} (get-in @ui-state [:orders-state :status]))
+                (set-orders-state! "loading" "Loading open orders..."))
               (let [result (async/<! (ib.orders/open-orders-snapshot!
                                        conn
                                        {:mode :open
@@ -703,10 +759,16 @@
                   (let [rows (mapv to-order-row (:orders result))]
                     (clear-cell-error! :orders)
                     (swap! ui-state assoc :orders rows)
+                    (set-orders-state! "ready")
                     (broadcast! {:type "orders" :data rows}))
-                  (set-cell-error! :orders (if (orders-timeout? result)
-                                             "IB Timeout"
-                                             "IB Error"))))
+                  (do
+                    (set-cell-error! :orders (if (orders-timeout? result)
+                                               "IB Timeout"
+                                               "IB Error"))
+                    (set-orders-state! (if (orders-timeout? result) "timeout" "error")
+                                       (if (orders-timeout? result)
+                                         "Open orders snapshot timed out."
+                                         "Open orders snapshot failed.")))))
               (finally
                 (reset! orders-in-flight? false))))))
       (let [refresh-ms (ib-refresh-ms)]
@@ -747,6 +809,7 @@
           (mark-connected!)
           (doseq [cell [:balance :positions :orders]]
             (clear-cell-error! cell))
+          (set-orders-state! "loading" "Loading open orders...")
           (start-event-forwarder! conn events-ch stop-ch)
           (start-snapshot-loop! conn stop-ch)
           true)

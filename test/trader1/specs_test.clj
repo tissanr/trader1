@@ -4,7 +4,7 @@
 
 (deftest settings-spec-test
   (testing "accepts valid settings maps"
-    (is (= {:server {:port 3000}
+    (is (= {:server {:port 3001}
             :services {:ib {:enabled true
                             :host "127.0.0.1"
                             :port 4002
@@ -18,7 +18,7 @@
                                 :ticker-ms 5000
                                 :balance-ms nil
                                 :orders-ms 600000}}}
-           (specs/assert-settings! {:server {:port 3000}
+           (specs/assert-settings! {:server {:port 3001}
                                     :services {:ib {:enabled true
                                                     :host "127.0.0.1"
                                                     :port 4002
@@ -35,7 +35,7 @@
   (testing "rejects invalid settings maps"
     (is (thrown-with-msg? clojure.lang.ExceptionInfo
           #"Spec validation failed for settings"
-          (specs/assert-settings! {:server {:port 3000}
+          (specs/assert-settings! {:server {:port 3001}
                                    :services {:ib {:enabled true
                                                    :host "127.0.0.1"
                                                    :port 4002
@@ -63,6 +63,16 @@
                      :net-liquidation "12345.67"
                      :buying-power "4000.00"
                      :currency "USD"}]}))))
+  (testing "accepts open-orders state payloads"
+    (is (= {:type "orders-state"
+            :data {:status "ready"
+                   :order-count 0
+                   :updated-at 1234567890}}
+           (specs/assert-websocket-message!
+            {:type "orders-state"
+             :data {:status "ready"
+                    :order-count 0
+                    :updated-at 1234567890}}))))
   (testing "rejects unknown websocket message types"
     (is (thrown-with-msg? clojure.lang.ExceptionInfo
           #"Spec validation failed for websocket message"

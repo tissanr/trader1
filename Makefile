@@ -67,7 +67,7 @@ dev:
 	@echo "Terminal 2:"
 	@echo "  make backend"
 	@echo ""
-	@echo "Then open http://localhost:3000"
+	@echo "Then open http://localhost:3001"
 
 test:
 	lein test

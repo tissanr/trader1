@@ -5,7 +5,7 @@
 
 (deftest defaults-test
   (testing "defaults contain the expected keys and values"
-    (is (= 3000      (get-in settings/defaults [:server :port])))
+    (is (= 3001      (get-in settings/defaults [:server :port])))
     (is (= true      (get-in settings/defaults [:services :ib :enabled])))
     (is (= "127.0.0.1" (get-in settings/defaults [:services :ib :host])))
     (is (= 10000     (get-in settings/defaults [:services :kraken :refresh-ms])))
@@ -61,7 +61,7 @@
     (let [tmp (java.io.File/createTempFile "trader1-settings" ".edn")]
       (try
         (with-redefs [settings/config-path (.getAbsolutePath tmp)]
-          (settings/save! {:server {:port 3000}
+          (settings/save! {:server {:port 3001}
                            :services {:ib {:enabled true
                                            :host "127.0.0.1"
                                            :port 4002
@@ -78,7 +78,7 @@
         (is (= 300000 (get-in @settings/settings [:services :kraken :ticker-ms])))
         (is (nil?     (get-in @settings/settings [:services :kraken :balance-ms])))
         (is (= 600000 (get-in @settings/settings [:services :kraken :orders-ms])))
-        (is (= {:server {:port 3000}
+        (is (= {:server {:port 3001}
                 :services {:ib {:enabled true
                                 :host "127.0.0.1"
                                 :port 4002
@@ -99,7 +99,7 @@
   (testing "save! rejects invalid settings"
     (is (thrown-with-msg? clojure.lang.ExceptionInfo
           #"Spec validation failed for settings"
-          (settings/save! {:server {:port 3000}
+          (settings/save! {:server {:port 3001}
                            :services {:ib {:enabled true
                                            :host "127.0.0.1"
                                            :port 4002

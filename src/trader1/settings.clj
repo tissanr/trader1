@@ -5,7 +5,7 @@
 (def config-path "config/settings.edn")
 
 (def defaults
-  {:server {:port 3000}
+  {:server {:port 3001}
    :services {:ib {:enabled true
                    :host "127.0.0.1"
                    :port 4002

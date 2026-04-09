@@ -9,6 +9,7 @@
            :portfolio-balance       nil
            :positions               []
            :orders                  []
+           :orders-state            {:status "idle"}
            :connection-status       "disconnected"
            :errors                  {}
            :ib-log                  []
@@ -42,6 +43,9 @@
 
     "orders"
     (swap! app-state assoc :orders (or data []))
+
+    "orders-state"
+    (swap! app-state assoc :orders-state data)
 
     "cell-error"
     (swap! app-state assoc-in [:errors (keyword (:cell data))] (:message data))

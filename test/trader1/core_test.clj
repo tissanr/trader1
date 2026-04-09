@@ -22,6 +22,7 @@
           (is (= 1 (count @calls)))
           (is (= "https://example.com/foo/bar" (:url (first @calls))))
           (is (= :json (get-in (first @calls) [:opts :as])))
+          (is (= :ignore-cookies (get-in (first @calls) [:opts :cookie-policy])))
           (is (= {:status 200 :body {:result "ok"}} result)))))))
 
 (deftest post-form-path-test
@@ -38,4 +39,5 @@
           (is (= form (get-in (first @calls) [:opts :form-params])))
           (is (= headers (get-in (first @calls) [:opts :headers])))
           (is (= :json (get-in (first @calls) [:opts :as])))
+          (is (= :ignore-cookies (get-in (first @calls) [:opts :cookie-policy])))
           (is (= {:status 200 :body {:result "posted"}} result)))))))

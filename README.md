@@ -122,7 +122,7 @@ Runtime configuration now lives in `config/settings.edn`, with environment varia
 Reference configuration shape:
 
 ```clojure
-{:server {:port 3000}
+{:server {:port 3001}
  :services
  {:ib {:enabled true
        :host "127.0.0.1"
@@ -200,7 +200,7 @@ Startup behavior:
 Open:
 
 ```text
-http://localhost:3000
+http://localhost:3001
 ```
 
 ## 9. Dashboard Layout
@@ -245,7 +245,7 @@ make frontend-watch
 make backend
 ```
 
-4. Open `http://localhost:3000` and sign in.
+4. Open `http://localhost:3001` and sign in.
 5. Edit backend code under `src/trader1/` and restart `make backend` when needed.
 6. Edit frontend code under `src/trader1/frontend/`; `make frontend-watch` will rebuild automatically.
 7. Run `make test` after backend or contract changes.
