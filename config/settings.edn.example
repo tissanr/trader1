@@ -1,5 +1,17 @@
 ;; Copy this file to config/settings.edn to override defaults.
-;; Use nil for any interval to disable auto-refresh (manual mode).
-{:ticker-ms  5000
- :balance-ms 30000
- :orders-ms  15000}
+;; Use nil for any Kraken interval to disable auto-refresh (manual mode).
+{:server {:port 3000}
+ :services
+ {:ib {:enabled true
+       :host "127.0.0.1"
+       :port 4002
+       :client-id 0
+       :snapshot-timeout-ms 5000
+       :refresh-ms 10000
+       :event-buffer-size 2048
+       :overflow-strategy :sliding}
+  :kraken {:enabled true
+           :refresh-ms 10000
+           :ticker-ms 5000
+           :balance-ms 30000
+           :orders-ms 15000}}}

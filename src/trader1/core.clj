@@ -1,6 +1,7 @@
 (ns trader1.core
   (:require [clj-http.client :as client]
-            [cheshire.core :refer [generate-string]])
+            [cheshire.core :refer [generate-string]]
+            [trader1.settings :as settings])
   (:gen-class))
 
 
@@ -30,7 +31,8 @@
 
 (defn -main [& _args]
   (require 'trader1.web)
-  (let [port   (Integer/parseInt (or (System/getenv "PORT") "3000"))
+  (settings/load!)
+  (let [port   (settings/get-value [:server :port])
         start! (ns-resolve 'trader1.web 'start-server!)]
     (start! port)
     (println (str "Trader1 dashboard running on http://localhost:" port))))
