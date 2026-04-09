@@ -13,14 +13,13 @@ Detailed scope, tasks, and acceptance criteria live in [`doc/phases/`](./phases/
 ## Current
 
 - Phase 01: Development planning foundation - done
+- Phase 02: Cleanup and runtime configuration - in progress
 
 ## Next
-
-- Phase 02: Cleanup and runtime configuration - planned
+- Phase 03: IB open orders improvements - planned
 
 ## Later
 
-- Phase 03: IB open orders improvements - planned
 - Phase 04: IB order submission - planned
 - Phase 05: Kraken order submission - planned
 - Phase 06: Kraken order management - planned

@@ -40,13 +40,28 @@
 (deftest settings-handler-test
   (testing "saves parsed settings and redirects to /dashboard"
     (let [saved (atom nil)]
+      (reset! settings/settings settings/defaults)
       (with-redefs [settings/save! (fn [s] (reset! saved s))]
         (let [resp (settings-handler {:params {:ticker-ms  "5000"
                                                :balance-ms "300000"
                                                :orders-ms  "manual"}})]
           (is (= 302 (:status resp)))
           (is (= "/dashboard" (get-in resp [:headers "Location"])))
-          (is (= {:ticker-ms 5000 :balance-ms 300000 :orders-ms nil} @saved)))))))
+          (is (= {:server {:port 3000}
+                  :services {:ib {:enabled true
+                                  :host "127.0.0.1"
+                                  :port 4002
+                                  :client-id 0
+                                  :snapshot-timeout-ms 5000
+                                  :refresh-ms 10000
+                                  :event-buffer-size 2048
+                                  :overflow-strategy :sliding}
+                             :kraken {:enabled true
+                                      :refresh-ms 10000
+                                      :ticker-ms 5000
+                                      :balance-ms 300000
+                                      :orders-ms nil}}}
+                 @saved)))))))
 
 (deftest login-handler-test
   (testing "redirects to /dashboard and stores identity in session on success"

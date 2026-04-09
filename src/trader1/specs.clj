@@ -27,7 +27,21 @@
 (s/def ::ticker-ms (s/nilable pos-int?))
 (s/def ::balance-ms (s/nilable pos-int?))
 (s/def ::orders-ms (s/nilable pos-int?))
-(s/def ::settings (s/keys :req-un [::ticker-ms ::balance-ms ::orders-ms]))
+(s/def ::enabled boolean?)
+(s/def ::host non-blank-string?)
+(s/def ::port pos-int?)
+(s/def ::client-id int?)
+(s/def ::snapshot-timeout-ms pos-int?)
+(s/def ::refresh-ms pos-int?)
+(s/def ::event-buffer-size pos-int?)
+(s/def ::overflow-strategy #{:sliding :dropping :blocking})
+(s/def ::server (s/keys :req-un [::port]))
+(s/def ::kraken (s/keys :req-un [::enabled ::refresh-ms ::ticker-ms ::balance-ms ::orders-ms]))
+(s/def ::ib (s/keys :req-un [::enabled ::host ::port ::client-id
+                             ::snapshot-timeout-ms ::refresh-ms
+                             ::event-buffer-size ::overflow-strategy]))
+(s/def ::services (s/keys :req-un [::ib ::kraken]))
+(s/def ::settings (s/keys :req-un [::server ::services]))
 
 (s/def ::account non-blank-string?)
 (s/def ::net-liquidation (s/nilable non-blank-string?))

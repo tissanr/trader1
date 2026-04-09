@@ -4,16 +4,51 @@
 
 (deftest settings-spec-test
   (testing "accepts valid settings maps"
-    (is (= {:ticker-ms 5000 :balance-ms nil :orders-ms 600000}
-           (specs/assert-settings! {:ticker-ms 5000
-                                    :balance-ms nil
-                                    :orders-ms 600000}))))
+    (is (= {:server {:port 3000}
+            :services {:ib {:enabled true
+                            :host "127.0.0.1"
+                            :port 4002
+                            :client-id 0
+                            :snapshot-timeout-ms 5000
+                            :refresh-ms 10000
+                            :event-buffer-size 2048
+                            :overflow-strategy :sliding}
+                       :kraken {:enabled true
+                                :refresh-ms 10000
+                                :ticker-ms 5000
+                                :balance-ms nil
+                                :orders-ms 600000}}}
+           (specs/assert-settings! {:server {:port 3000}
+                                    :services {:ib {:enabled true
+                                                    :host "127.0.0.1"
+                                                    :port 4002
+                                                    :client-id 0
+                                                    :snapshot-timeout-ms 5000
+                                                    :refresh-ms 10000
+                                                    :event-buffer-size 2048
+                                                    :overflow-strategy :sliding}
+                                               :kraken {:enabled true
+                                                        :refresh-ms 10000
+                                                        :ticker-ms 5000
+                                                        :balance-ms nil
+                                                        :orders-ms 600000}}}))))
   (testing "rejects invalid settings maps"
     (is (thrown-with-msg? clojure.lang.ExceptionInfo
           #"Spec validation failed for settings"
-          (specs/assert-settings! {:ticker-ms "fast"
-                                   :balance-ms 30000
-                                   :orders-ms 15000})))))
+          (specs/assert-settings! {:server {:port 3000}
+                                   :services {:ib {:enabled true
+                                                   :host "127.0.0.1"
+                                                   :port 4002
+                                                   :client-id 0
+                                                   :snapshot-timeout-ms 5000
+                                                   :refresh-ms 10000
+                                                   :event-buffer-size 2048
+                                                   :overflow-strategy :sliding}
+                                              :kraken {:enabled true
+                                                       :refresh-ms 10000
+                                                       :ticker-ms "fast"
+                                                       :balance-ms 30000
+                                                       :orders-ms 15000}}})))))
 
 (deftest websocket-message-spec-test
   (testing "accepts a normalized websocket portfolio message"
