@@ -17,6 +17,7 @@
             [ring.middleware.anti-forgery :refer [*anti-forgery-token*]]
             [trader1.auth :as auth]
             [trader1.kraken :as kraken]
+            [trader1.specs :as specs]
             [trader1.settings :as settings]))
 
 (def refresh-ms 10000)
@@ -36,10 +37,19 @@
          :connection :disconnected}))
 (defonce last-order-status (atom {}))
 
+(defn- validated [spec value context]
+  (specs/assert-valid! spec value context))
+
+(defn- websocket-message [type data]
+  (specs/assert-websocket-message! {:type type :data data}))
+
+(defn- send-payload! [ch type data]
+  (httpkit/send! ch (json/generate-string (websocket-message type data))))
+
 (defn broadcast!
   "Sends a JSON-encoded payload map to all connected WebSocket clients."
   [payload-map]
-  (let [msg (json/generate-string payload-map)]
+  (let [msg (json/generate-string (specs/assert-websocket-message! payload-map))]
     (doseq [ch @connected-channels]
       (httpkit/send! ch msg))))
 
@@ -75,14 +85,17 @@
    :overflow-strategy :sliding})
 
 (defn- summary-values->rows [summary-values]
-  (vec (for [[account tags] summary-values
-             :let [nl (get tags "NetLiquidation")
-                   bp (get tags "BuyingPower")]
-             :when (or nl bp)]
-         {:account         account
-          :net-liquidation (some-> nl :value)
-          :buying-power    (some-> bp :value)
-          :currency        (or (some-> nl :currency) (some-> bp :currency) "USD")})))
+  (validated
+   ::specs/portfolio-balance
+   (vec (for [[account tags] summary-values
+              :let [nl (get tags "NetLiquidation")
+                    bp (get tags "BuyingPower")]
+              :when (or nl bp)]
+          {:account         account
+           :net-liquidation (some-> nl :value)
+           :buying-power    (some-> bp :value)
+           :currency        (or (some-> nl :currency) (some-> bp :currency) "USD")}))
+   "portfolio balance rows"))
 
 (defn- balance-timeout? [result]
   (or (= :timeout (:error result))
@@ -103,48 +116,45 @@
 (defn- to-order-row [order-event]
   (let [{:keys [order-id contract order order-state]} order-event
         status-from-stream (order-status-for order-id)]
-    {:symbol (or (:symbol contract) "--")
-     :action (or (:action order) "--")
-     :order-type (or (:orderType order) "--")
-     :quantity (or (:totalQuantity order) "--")
-     :limit-price (:lmtPrice order)
-     :status (or (:status-text status-from-stream)
-                 (:status order-state)
-                 "--")
-     :filled (:filled status-from-stream)
-     :remaining (:remaining status-from-stream)}))
+    (validated
+     ::specs/order-row
+     {:symbol (or (:symbol contract) "--")
+      :action (or (:action order) "--")
+      :order-type (or (:orderType order) "--")
+      :quantity (or (:totalQuantity order) "--")
+      :limit-price (:lmtPrice order)
+      :status (or (:status-text status-from-stream)
+                  (:status order-state)
+                  "--")
+      :filled (:filled status-from-stream)
+      :remaining (:remaining status-from-stream)}
+     "order row")))
 
 (defn- to-position-row [position-event]
   (let [{:keys [contract position avg-cost]} position-event]
-    {:symbol (or (:symbol contract) "--")
-     :sec-type (or (:secType contract) "--")
-     :currency (or (:currency contract) "--")
-     :position (or position "--")
-     :avg-cost (or avg-cost "--")}))
+    (validated
+     ::specs/position-row
+     {:symbol (or (:symbol contract) "--")
+      :sec-type (or (:secType contract) "--")
+      :currency (or (:currency contract) "--")
+      :position (or position "--")
+      :avg-cost (or avg-cost "--")}
+     "position row")))
 
 (defn- push-state-to-client! [ch]
   (let [{:keys [balance positions orders errors connection
                 kraken-balance kraken-orders kraken-portfolio-value kraken-ticker]} @ui-state]
-    (httpkit/send! ch (json/generate-string {:type "connection"
-                                             :data {:status (name connection)}}))
-    (httpkit/send! ch (json/generate-string {:type "kraken-balance"
-                                             :data kraken-balance}))
-    (httpkit/send! ch (json/generate-string {:type "kraken-orders"
-                                             :data kraken-orders}))
-    (httpkit/send! ch (json/generate-string {:type "kraken-portfolio-value"
-                                             :data kraken-portfolio-value}))
-    (httpkit/send! ch (json/generate-string {:type "kraken-ticker"
-                                             :data kraken-ticker}))
-    (httpkit/send! ch (json/generate-string {:type "portfolio-balance"
-                                             :data balance}))
-    (httpkit/send! ch (json/generate-string {:type "positions"
-                                             :data positions}))
-    (httpkit/send! ch (json/generate-string {:type "orders"
-                                             :data orders}))
+    (send-payload! ch "connection" {:status (name connection)})
+    (send-payload! ch "kraken-balance" kraken-balance)
+    (send-payload! ch "kraken-orders" kraken-orders)
+    (send-payload! ch "kraken-portfolio-value" kraken-portfolio-value)
+    (send-payload! ch "kraken-ticker" kraken-ticker)
+    (send-payload! ch "portfolio-balance" balance)
+    (send-payload! ch "positions" positions)
+    (send-payload! ch "orders" orders)
     (doseq [[cell message] errors]
-      (httpkit/send! ch (json/generate-string {:type "cell-error"
-                                               :data {:cell (name cell)
-                                                      :message message}})))))
+      (send-payload! ch "cell-error" {:cell (name cell)
+                                      :message message}))))
 
 (defn- ib-json-response [body]
   {:status 200

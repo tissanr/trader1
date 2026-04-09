@@ -52,3 +52,20 @@
         (is (= {:ticker-ms 300000 :balance-ms nil :orders-ms 600000}
                (edn/read-string (slurp tmp))))
         (finally (.delete tmp))))))
+
+(deftest invalid-settings-test
+  (testing "save! rejects invalid settings"
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+          #"Spec validation failed for settings"
+          (settings/save! {:ticker-ms "fast"
+                           :balance-ms 30000
+                           :orders-ms 15000}))))
+  (testing "load! leaves current settings unchanged when file contents are invalid"
+    (reset! settings/settings settings/defaults)
+    (let [tmp (java.io.File/createTempFile "trader1-settings" ".edn")]
+      (try
+        (spit tmp "{:ticker-ms \"fast\" :balance-ms 30000 :orders-ms 15000}")
+        (with-redefs [settings/config-path (.getAbsolutePath tmp)]
+          (settings/load!))
+        (is (= settings/defaults @settings/settings))
+        (finally (.delete tmp))))))

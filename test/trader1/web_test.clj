@@ -22,12 +22,10 @@
 
 (deftest dashboard-page-test
   (let [html (dashboard-page)]
-    (is (.contains html "Portfolio Balance (USD)"))
-    (is (.contains html "Positionen"))
-    (is (.contains html "Offene Orders"))
-    (is (.contains html "portfolio-balance-cell"))
-    (is (.contains html "positions-body"))
-    (is (.contains html "orders-body"))))
+    (is (.contains html "<div id=\"app\"></div>"))
+    (is (.contains html "<meta content=\"width=device-width, initial-scale=1\" name=\"viewport\">"))
+    (is (.contains html "/style.css"))
+    (is (.contains html "/js/main.js"))))
 
 (deftest settings-page-test
   (testing "renders all three interval selects"
@@ -88,7 +86,8 @@
     (let [resp (app-routes (assoc base-req :request-method :get :uri "/dashboard"
                                   :session {:identity "admin"}))]
       (is (= 200 (:status resp)))
-      (is (.contains (:body resp) "Portfolio Balance (USD)"))))
+      (is (.contains (:body resp) "<div id=\"app\"></div>"))
+      (is (.contains (:body resp) "/js/main.js"))))
   (testing "POST /settings without auth returns 401"
     (let [resp (app-routes (assoc base-req :request-method :post :uri "/settings"))]
       (is (= 401 (:status resp))))))
@@ -101,9 +100,14 @@
       (reset! connected-channels #{fake-ch1 fake-ch2})
       (try
         (with-redefs [httpkit/send! (fn [ch msg] (swap! sent conj {:ch ch :msg msg}))]
-          (broadcast! {:type "test" :data {:x 1}})
+          (broadcast! {:type "connection" :data {:status "connected"}})
           (is (= 2 (count @sent)))
           (let [parsed (map #(json/parse-string (:msg %)) @sent)]
-            (is (every? #(= "test" (get % "type")) parsed))))
+            (is (every? #(= "connection" (get % "type")) parsed))
+            (is (every? #(= "connected" (get-in % ["data" "status"])) parsed))))
         (finally
-          (reset! connected-channels #{}))))))
+          (reset! connected-channels #{})))))
+  (testing "rejects malformed websocket payloads"
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+          #"websocket payload for connection"
+          (broadcast! {:type "connection" :data {:status "maybe"}})))))
