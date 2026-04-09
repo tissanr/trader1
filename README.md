@@ -234,6 +234,12 @@ make backend
 6. Edit frontend code under `src/trader1/frontend/`; `make frontend-watch` will rebuild automatically.
 7. Run `make test` after backend or contract changes.
 
+Planning workflow:
+
+- Use [doc/roadmap.md](doc/roadmap.md) to see what is current, next, and later.
+- Use [doc/phases/phase-template.md](doc/phases/phase-template.md) to define new phases as small, testable vertical slices.
+- Keep detailed scope and acceptance criteria in individual files under [doc/phases/](doc/phases/).
+
 Useful one-off commands:
 
 ```bash

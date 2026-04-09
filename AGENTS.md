@@ -2,6 +2,13 @@
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
+## Planning workflow
+
+- Development planning lives in `doc/roadmap.md` and `doc/phases/`.
+- When implementation starts for a planned phase, update `doc/roadmap.md` in the same change to mark that phase `in progress`.
+- When a phase is completed, update both the phase document and `doc/roadmap.md` in the same change to reflect the final status and advance the next phase as needed.
+- If implementation changes the agreed scope, update the corresponding phase document so the plan stays aligned with reality.
+
 ## Commands
 
 ### Make targets
