@@ -4,6 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+### Make targets
+
+```bash
+make                 # Build the frontend bundle once
+make install         # Bootstrap a local dev setup from a clean checkout
+make frontend-watch  # Run shadow-cljs in watch mode
+make backend         # Start the backend server
+make test            # Run the backend test suite
+make dev             # Print the recommended two-terminal workflow
+```
+
 ### Backend (Clojure / Leiningen)
 
 ```bash
@@ -27,19 +38,16 @@ npx shadow-cljs watch app    # Dev build with hot-reload (keep running in backgr
 
 ```bash
 # Terminal 1 — CLJS compiler with hot-reload
-npx shadow-cljs watch app
+make frontend-watch
 
 # Terminal 2 — Clojure server
-lein run
+make backend
 ```
 
 ### First run bootstrap
 
 ```bash
-git submodule update --init --recursive
-npm install
-npx shadow-cljs compile app
-lein test
+make install
 ```
 
 Notes:
