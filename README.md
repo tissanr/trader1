@@ -113,28 +113,43 @@ Notes:
 
 ## 7. Configuration
 
-Runtime IB connection is configured via environment variables in the current implementation:
+Runtime configuration now lives in `config/settings.edn`, with environment variables only overriding selected local connection values:
 
-- `IB_HOST` (default: `127.0.0.1`)
-- `IB_PORT` (default: `4002`)
-- `client-id` is fixed to `0` in code
-- snapshot timeout is fixed to `5000 ms` in code
+- `PORT` overrides `[:server :port]`
+- `IB_HOST` overrides `[:services :ib :host]`
+- `IB_PORT` overrides `[:services :ib :port]`
 
-Reference configuration map (conceptual shape):
+Reference configuration shape:
 
 ```clojure
-{:ib {:host "127.0.0.1"
-      :port 4002
-      :client-id 0
-      :timeout-ms 5000}}
+{:server {:port 3000}
+ :services
+ {:ib {:enabled true
+       :host "127.0.0.1"
+       :port 4002
+       :client-id 0
+       :snapshot-timeout-ms 5000
+       :refresh-ms 10000
+       :event-buffer-size 2048
+       :overflow-strategy :sliding}
+  :kraken {:enabled true
+           :refresh-ms 10000
+           :ticker-ms 5000
+           :balance-ms 30000
+           :orders-ms 15000}}}
 ```
 
 Field meaning:
 
-- `:host`: IB API host
-- `:port`: IB API socket port
-- `:client-id`: IB client identifier (`0` required for manual TWS orders)
-- `:timeout-ms`: snapshot timeout per IB request
+- `[:server :port]`: HTTP port for the dashboard server
+- `[:services :ib :enabled]`: allow local runs without connecting to IB
+- `[:services :ib :host]` / `[:services :ib :port]`: IB API socket endpoint
+- `[:services :ib :client-id]`: IB client identifier (`0` required for manual TWS orders)
+- `[:services :ib :snapshot-timeout-ms]`: timeout per IB snapshot request
+- `[:services :ib :refresh-ms]`: polling cadence for IB snapshot refreshes
+- `[:services :kraken :enabled]`: allow local runs without Kraken polling
+- `[:services :kraken :refresh-ms]`: loop cadence for Kraken polling checks
+- `[:services :kraken :ticker-ms]`, `[:balance-ms]`, `[:orders-ms]`: Kraken polling intervals
 
 Local runtime files:
 
@@ -144,8 +159,9 @@ Local runtime files:
   - copy from `credentials/kraken.key.example`
 - `config/auth.edn` — Web UI users and password hashes
   - copy from `config/auth.edn.example`
-- `config/settings.edn` — Polling interval overrides
-  - optional; copy from `config/settings.edn.example` if you want local overrides
+- `config/settings.edn` — runtime settings for HTTP server, IB, and Kraken
+  - copy from `config/settings.edn.example`
+  - old flat polling keys are still accepted during loading for compatibility
 
 These files are local machine configuration, are gitignored, and are required for a fully working authenticated runtime.
 
@@ -171,10 +187,10 @@ PORT=8080 lein run
 
 Startup behavior:
 
-- Connects to IB (`ib.client/connect!`) with `client-id = 0`
-- Subscribes to IB events
-- Starts async snapshot refresh loop (default every 10 seconds)
-- Starts a Kraken polling loop for ticker, balance, and open-order data
+- Loads `config/settings.edn` and applies environment overrides for `PORT`, `IB_HOST`, and `IB_PORT`
+- Connects to IB (`ib.client/connect!`) when `[:services :ib :enabled]` is true
+- Subscribes to IB events and starts the IB snapshot refresh loop using configured timeouts and intervals
+- Starts the Kraken polling loop when `[:services :kraken :enabled]` is true
 - Loads and pushes dashboard data for:
   - IB portfolio balance (`NetLiquidation`, `BuyingPower`)
   - IB positions

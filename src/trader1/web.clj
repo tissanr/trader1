@@ -20,9 +20,6 @@
             [trader1.specs :as specs]
             [trader1.settings :as settings]))
 
-(def refresh-ms 10000)
-(def snapshot-timeout-ms 5000)
-
 (defonce connected-channels (atom #{}))
 (defonce ib-runtime (atom nil))
 (defonce ui-state
@@ -71,18 +68,17 @@
   (swap! ui-state assoc :connection :connected)
   (broadcast! {:type "connection" :data {:status "connected"}}))
 
-(defn- parse-int [s default]
-  (try
-    (Integer/parseInt (str s))
-    (catch Exception _
-      default)))
-
 (defn- ib-config []
-  {:host (or (System/getenv "IB_HOST") "127.0.0.1")
-   :port (parse-int (or (System/getenv "IB_PORT") "4002") 4002)
-   :client-id 0
-   :event-buffer-size 2048
-   :overflow-strategy :sliding})
+  (get-in @settings/settings [:services :ib]))
+
+(defn- ib-snapshot-timeout-ms []
+  (get-in @settings/settings [:services :ib :snapshot-timeout-ms]))
+
+(defn- ib-refresh-ms []
+  (get-in @settings/settings [:services :ib :refresh-ms]))
+
+(defn- kraken-refresh-ms []
+  (get-in @settings/settings [:services :kraken :refresh-ms]))
 
 (defn- summary-values->rows [summary-values]
   (validated
@@ -204,7 +200,7 @@
    label])
 
 (defn settings-page []
-  (let [cfg @settings/settings]
+  (let [cfg (get-in @settings/settings [:services :kraken])]
     (html5
       [:head
        [:meta {:charset "utf-8"}]
@@ -262,9 +258,12 @@
 
 (defn settings-handler [request]
   (let [{:keys [ticker-ms balance-ms orders-ms]} (:params request)]
-    (settings/save! {:ticker-ms  (parse-interval ticker-ms)
-                     :balance-ms (parse-interval balance-ms)
-                     :orders-ms  (parse-interval orders-ms)})
+    (settings/save! (assoc-in @settings/settings
+                              [:services :kraken]
+                              (merge (get-in @settings/settings [:services :kraken])
+                                     {:ticker-ms  (parse-interval ticker-ms)
+                                      :balance-ms (parse-interval balance-ms)
+                                      :orders-ms  (parse-interval orders-ms)})))
     (resp/redirect "/dashboard")))
 
 (defn websocket-handler [request]
@@ -301,7 +300,7 @@
       (let [result (async/<!! (ib.account/account-summary-snapshot!
                                 conn {:group "All"
                                       :tags ["NetLiquidation" "BuyingPower"]
-                                      :timeout-ms snapshot-timeout-ms}))]
+                                      :timeout-ms (ib-snapshot-timeout-ms)}))]
         (when (:ok result)
           (let [rows (summary-values->rows (:values result))]
             (when (seq rows)
@@ -315,7 +314,7 @@
     (if-not conn
       (ib-json-response {:ok false :message "Not connected to IB"})
       (let [result (async/<!! (ib.positions/positions-snapshot!
-                                conn {:timeout-ms snapshot-timeout-ms}))]
+                                conn {:timeout-ms (ib-snapshot-timeout-ms)}))]
         (if (and (vector? result) (every? #(= :ib/position (:type %)) result))
           (let [rows (mapv to-position-row result)]
             (swap! ui-state assoc :positions rows)
@@ -328,7 +327,8 @@
     (if-not conn
       (ib-json-response {:ok false :message "Not connected to IB"})
       (let [result (async/<!! (ib.orders/open-orders-snapshot!
-                                conn {:mode :all :timeout-ms snapshot-timeout-ms}))]
+                                conn {:mode :all
+                                      :timeout-ms (ib-snapshot-timeout-ms)}))]
         (if (:ok result)
           (let [rows (mapv to-order-row (:orders result))]
             (swap! ui-state assoc :orders rows)
@@ -350,7 +350,7 @@
                                      {:symbol   symbol
                                       :exchange exchange
                                       :currency currency}
-                                     {:timeout-ms snapshot-timeout-ms}))]
+                                     {:timeout-ms (ib-snapshot-timeout-ms)}))]
           (if-not (:ok cd-result)
             (ib-json-response cd-result)
             (let [contract (-> cd-result :contracts first :contract)]
@@ -360,7 +360,7 @@
                 (ib-json-response (async/<!! (ib.market-data/contract-details-snapshot!
                                                conn
                                                (:symbol contract)
-                                               (assoc contract :timeout-ms snapshot-timeout-ms))))))))))
+                                               (assoc contract :timeout-ms (ib-snapshot-timeout-ms)))))))))))
     (catch Throwable t
       (ib-json-response {:ok false :error :exception
                          :message (str (class t) ": " (.getMessage t))}))))
@@ -381,7 +381,7 @@
                                      {:symbol   symbol
                                       :exchange exchange
                                       :currency currency}
-                                     {:timeout-ms snapshot-timeout-ms}))]
+                                     {:timeout-ms (ib-snapshot-timeout-ms)}))]
           (if-not (:ok cd-result)
             (ib-json-response cd-result)
             (let [contract (-> cd-result :contracts first :contract)]
@@ -591,16 +591,21 @@
 
         (let [now (System/currentTimeMillis)
               cfg @settings/settings
-              kraken-balance (when-let [ms (:balance-ms cfg)]
-                               (when (> (- now @last-kraken-balance) ms)
-                                 (let [b (fetch-with-fallback kraken/request-balance)]
-                                   (reset! last-kraken-balance now)
-                                   b)))
-              kraken-orders (when-let [ms (:orders-ms cfg)]
-                              (when (> (- now @last-kraken-orders) ms)
-                                (let [o (fetch-with-fallback kraken/request-open-orders)]
-                                  (reset! last-kraken-orders now)
-                                  o)))
+              kraken-enabled? (get-in cfg [:services :kraken :enabled])
+              kraken-balance (when (and kraken-enabled?
+                                        (get-in cfg [:services :kraken :balance-ms]))
+                               (let [ms (get-in cfg [:services :kraken :balance-ms])]
+                                 (when (> (- now @last-kraken-balance) ms)
+                                   (let [b (fetch-with-fallback kraken/request-balance)]
+                                     (reset! last-kraken-balance now)
+                                     b))))
+              kraken-orders (when (and kraken-enabled?
+                                       (get-in cfg [:services :kraken :orders-ms]))
+                              (let [ms (get-in cfg [:services :kraken :orders-ms])]
+                                (when (> (- now @last-kraken-orders) ms)
+                                  (let [o (fetch-with-fallback kraken/request-open-orders)]
+                                    (reset! last-kraken-orders now)
+                                    o))))
               kraken-ticker-pairs (if (and kraken-balance @kraken-usd-pairs)
                                     (->> kraken-balance
                                          (remove (fn [[k _]] (= (name k) "ZUSD")))
@@ -609,11 +614,13 @@
                                          (into ["XBTUSD"])
                                          distinct vec)
                                     ["XBTUSD"])
-              kraken-ticker (when-let [ms (:ticker-ms cfg)]
-                              (when (> (- now @last-kraken-ticker) ms)
-                                (let [t (fetch-with-fallback #(kraken/request-ticker kraken-ticker-pairs))]
-                                  (reset! last-kraken-ticker now)
-                                  t)))
+              kraken-ticker (when (and kraken-enabled?
+                                       (get-in cfg [:services :kraken :ticker-ms]))
+                              (let [ms (get-in cfg [:services :kraken :ticker-ms])]
+                                (when (> (- now @last-kraken-ticker) ms)
+                                  (let [t (fetch-with-fallback #(kraken/request-ticker kraken-ticker-pairs))]
+                                    (reset! last-kraken-ticker now)
+                                    t))))
               effective-ticker      (or kraken-ticker (:kraken-ticker @ui-state))
               kraken-portfolio-value (when (and kraken-balance @kraken-usd-pairs effective-ticker)
                                        (let [cash      (calculate-cash-usd
@@ -635,7 +642,7 @@
           (when kraken-portfolio-value
             (swap! ui-state assoc :kraken-portfolio-value kraken-portfolio-value)
             (broadcast! {:type "kraken-portfolio-value" :data kraken-portfolio-value}))))
-      (let [[_ port] (async/alts! [(async/timeout refresh-ms) stop-ch])]
+      (let [[_ port] (async/alts! [(async/timeout (kraken-refresh-ms)) stop-ch])]
         (when-not (= port stop-ch)
           (recur))))))
 
@@ -652,7 +659,7 @@
                                        conn
                                        {:group "All"
                                         :tags ["NetLiquidation" "BuyingPower"]
-                                        :timeout-ms snapshot-timeout-ms}))]
+                                        :timeout-ms (ib-snapshot-timeout-ms)}))]
                 (if (:ok result)
                   (let [rows (summary-values->rows (:values result))]
                     (if (seq rows)
@@ -672,7 +679,7 @@
             (try
               (let [result (async/<! (ib.positions/positions-snapshot!
                                        conn
-                                       {:timeout-ms snapshot-timeout-ms}))]
+                                       {:timeout-ms (ib-snapshot-timeout-ms)}))]
                 (if (and (vector? result)
                          (every? #(= :ib/position (:type %)) result))
                   (let [rows (mapv to-position-row result)]
@@ -691,7 +698,7 @@
               (let [result (async/<! (ib.orders/open-orders-snapshot!
                                        conn
                                        {:mode :open
-                                        :timeout-ms snapshot-timeout-ms}))]
+                                        :timeout-ms (ib-snapshot-timeout-ms)}))]
                 (if (:ok result)
                   (let [rows (mapv to-order-row (:orders result))]
                     (clear-cell-error! :orders)
@@ -702,9 +709,10 @@
                                              "IB Error"))))
               (finally
                 (reset! orders-in-flight? false))))))
-      (let [[_ port] (async/alts! [(async/timeout refresh-ms) stop-ch])]
-        (when-not (= port stop-ch)
-          (recur))))))
+      (let [refresh-ms (ib-refresh-ms)]
+        (let [[_ port] (async/alts! [(async/timeout refresh-ms) stop-ch])]
+          (when-not (= port stop-ch)
+            (recur)))))))
 
 (defn- stop-ib-runtime! []
   (when-let [{:keys [conn events-ch stop-ch]} @ib-runtime]
@@ -724,24 +732,29 @@
 
 (defn- start-ib-runtime! []
   (let [cfg (ib-config)]
-    (try
-      (let [conn (ib.client/connect! cfg)
-            events-ch (ib.client/subscribe-events! conn {:buffer-size 512})
-            stop-ch (async/chan)]
-        (reset! ib-runtime {:conn conn
-                            :events-ch events-ch
-                            :stop-ch stop-ch})
-        (mark-connected!)
-        (doseq [cell [:balance :positions :orders]]
-          (clear-cell-error! cell))
-        (start-event-forwarder! conn events-ch stop-ch)
-        (start-snapshot-loop! conn stop-ch)
-        true)
-      (catch Throwable t
-        (println "Failed to connect to IB:" (.getMessage t))
+    (if-not (:enabled cfg)
+      (do
+        (println "IB runtime disabled in config/settings.edn")
         (set-disconnected!)
-        (broadcast! {:type "ib-error" :data {:message (.getMessage t)}})
-        false))))
+        false)
+      (try
+        (let [conn (ib.client/connect! cfg)
+              events-ch (ib.client/subscribe-events! conn {:buffer-size 512})
+              stop-ch (async/chan)]
+          (reset! ib-runtime {:conn conn
+                              :events-ch events-ch
+                              :stop-ch stop-ch})
+          (mark-connected!)
+          (doseq [cell [:balance :positions :orders]]
+            (clear-cell-error! cell))
+          (start-event-forwarder! conn events-ch stop-ch)
+          (start-snapshot-loop! conn stop-ch)
+          true)
+        (catch Throwable t
+          (println "Failed to connect to IB:" (.getMessage t))
+          (set-disconnected!)
+          (broadcast! {:type "ib-error" :data {:message (.getMessage t)}})
+          false)))))
 
 (defn- maybe-wrap-reload [handler]
   (try
