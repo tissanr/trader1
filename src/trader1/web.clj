@@ -35,6 +35,7 @@
          :errors {:balance nil :positions nil :orders nil}
          :connection :disconnected}))
 (defonce last-order-status (atom {}))
+(defonce last-open-orders (atom (sorted-map)))
 
 (defn- validated [spec value context]
   (specs/assert-valid! spec value context))
@@ -72,6 +73,8 @@
      (broadcast! {:type "orders-state" :data data}))))
 
 (defn- set-disconnected! []
+  (reset! last-order-status {})
+  (reset! last-open-orders (sorted-map))
   (swap! ui-state assoc :connection :disconnected
          :orders []
          :orders-state {:status "disconnected"
@@ -124,6 +127,13 @@
 (defn- orders-timeout? [result]
   (or (= :timeout (:error result))
       (= 504 (:code result))))
+
+(defn- parse-long-param [value default]
+  (Long/parseLong (or value default)))
+
+(defn- parse-double-param [value]
+  (when (some? value)
+    (Double/parseDouble value)))
 
 (defn- order-status-for [order-id]
   (get @last-order-status order-id {}))
@@ -184,6 +194,49 @@
     (doseq [[cell message] errors]
       (send-payload! ch "cell-error" {:cell (name cell)
                                       :message message}))))
+
+(defn- publish-order-rows! [rows]
+  (clear-cell-error! :orders)
+  (swap! ui-state assoc :orders rows)
+  (set-orders-state! "ready")
+  (broadcast! {:type "orders" :data rows}))
+
+(defn- sync-open-orders! []
+  (let [rows (->> @last-open-orders
+                  vals
+                  (sort-by :order-id)
+                  (mapv to-order-row))]
+    (publish-order-rows! rows)
+    rows))
+
+(defn- remember-open-orders! [order-events]
+  (reset! last-open-orders
+          (into (sorted-map)
+                (map (fn [evt] [(:order-id evt) evt]))
+                order-events))
+  (sync-open-orders!))
+
+(defn- remember-open-order! [order-event]
+  (swap! last-open-orders assoc (:order-id order-event) order-event)
+  (sync-open-orders!))
+
+(defn- refresh-open-orders!
+  ([conn]
+   (refresh-open-orders! conn :all))
+  ([conn mode]
+   (let [result (async/<!! (ib.orders/open-orders-snapshot!
+                             conn {:mode mode
+                                   :timeout-ms (ib-snapshot-timeout-ms)}))]
+     (if (:ok result)
+       (let [rows (remember-open-orders! (:orders result))]
+         {:ok true :rows rows})
+       (let [timed-out? (orders-timeout? result)]
+         (set-cell-error! :orders (if timed-out? "IB Timeout" "IB Error"))
+         (set-orders-state! (if timed-out? "timeout" "error")
+                            (if timed-out?
+                              "Open orders snapshot timed out."
+                              "Open orders snapshot failed."))
+         {:ok false :error (some-> (:error result) str)})))))
 
 (defn- ib-json-response [body]
   {:status 200
@@ -361,25 +414,7 @@
       (ib-json-response {:ok false :message "Not connected to IB"})
       (do
         (set-orders-state! "loading" "Refreshing open orders...")
-        (let [result (async/<!! (ib.orders/open-orders-snapshot!
-                                  conn {:mode :all
-                                        :timeout-ms (ib-snapshot-timeout-ms)}))]
-          (if (:ok result)
-            (let [rows (mapv to-order-row (:orders result))]
-              (clear-cell-error! :orders)
-              (swap! ui-state assoc :orders rows)
-              (set-orders-state! "ready")
-              (broadcast! {:type "orders" :data rows})
-              (ib-json-response {:ok true :rows rows}))
-            (do
-              (set-cell-error! :orders (if (orders-timeout? result)
-                                         "IB Timeout"
-                                         "IB Error"))
-              (set-orders-state! (if (orders-timeout? result) "timeout" "error")
-                                 (if (orders-timeout? result)
-                                   "Open orders snapshot timed out."
-                                   "Open orders snapshot failed."))
-              (ib-json-response {:ok false :error (some-> (:error result) str)}))))))))
+        (ib-json-response (refresh-open-orders! conn :all))))))
 
 (defn- ib-quote-handler [request]
   (try
@@ -419,19 +454,20 @@
                          :message (str (class t) ": " (.getMessage t))}))))
 
 (defn- ib-place-order-handler [request]
-  (let [symbol   (or (get-in request [:params :symbol])   "AAPL")
-        exchange (or (get-in request [:params :exchange]) "SMART")
-        currency (or (get-in request [:params :currency]) "USD")
-        action   (or (get-in request [:params :action])   "BUY")
-        quantity (Long/parseLong (or (get-in request [:params :quantity]) "1"))
-        conn     (ib-conn)]
+  (let [symbol      (or (get-in request [:params :symbol]) "AAPL")
+        exchange    (or (get-in request [:params :exchange]) "SMART")
+        currency    (or (get-in request [:params :currency]) "USD")
+        action      (or (get-in request [:params :action]) "BUY")
+        order-type  (-> (or (get-in request [:params :order-type]) "MKT") str/upper-case)
+        quantity    (parse-long-param (get-in request [:params :quantity]) "1")
+        limit-price (parse-double-param (get-in request [:params :limit-price]))
+        conn        (ib-conn)]
     (if-not conn
       (ib-json-response {:ok false :message "Not connected to IB"})
       (try
-        ;; Step 1: resolve conId via ib.contract/contract-details-snapshot!
         (let [cd-result (async/<!! (ib.contract/contract-details-snapshot!
                                      conn
-                                     {:symbol   symbol
+                                     {:symbol symbol
                                       :exchange exchange
                                       :currency currency}
                                      {:timeout-ms (ib-snapshot-timeout-ms)}))]
@@ -440,24 +476,31 @@
             (let [contract (-> cd-result :contracts first :contract)]
               (if-not contract
                 (ib-json-response {:ok false :error :no-results :symbol symbol})
-                ;; Step 2: place order using resolved conId and primary exchange
-                (let [con-id       (:conId contract)
-                      primary-exch (:exchange contract)
-                      order-id     (ib.client/place-order!
-                                     conn
-                                     {:contract {:symbol       symbol
-                                                 :sec-type     "STK"
-                                                 :exchange     "SMART"
-                                                 :primary-exch primary-exch
-                                                 :currency     currency
-                                                 :con-id       con-id}
-                                      :order    {:action         action
-                                                 :order-type     "MKT"
-                                                 :total-quantity quantity
-                                                 :transmit       true}})]
-                  (ib-json-response {:ok true :order-id order-id
-                                     :symbol symbol :action action :quantity quantity
-                                     :con-id con-id}))))))
+                (let [con-id (:conId contract)
+                      primary-exch (or (:primaryExch contract) (:exchange contract))
+                      order-id (ib.client/place-order!
+                                conn
+                                {:contract {:symbol symbol
+                                            :sec-type "STK"
+                                            :exchange "SMART"
+                                            :primary-exch primary-exch
+                                            :currency currency
+                                            :con-id con-id}
+                                 :order {:action action
+                                         :order-type order-type
+                                         :total-quantity quantity
+                                         :lmt-price limit-price
+                                         :transmit true}})
+                      orders-result (refresh-open-orders! conn :all)]
+                  (ib-json-response {:ok true
+                                     :order-id order-id
+                                     :symbol symbol
+                                     :action action
+                                     :quantity quantity
+                                     :order-type order-type
+                                     :limit-price limit-price
+                                     :con-id con-id
+                                     :orders-refresh-ok (:ok orders-result)}))))))
         (catch Exception e
           (ib-json-response {:ok false :message (.getMessage e)}))))))
 
@@ -610,9 +653,16 @@
           (println "IB event channel closed")
           (set-disconnected!))
 
+        (= :ib/open-order (:type evt))
+        (do
+          (remember-open-order! evt)
+          (recur))
+
         (= :ib/order-status (:type evt))
         (do
           (swap! last-order-status assoc (:order-id evt) evt)
+          (when (contains? @last-open-orders (:order-id evt))
+            (sync-open-orders!))
           (recur))
 
         (= :ib/error (:type evt))
@@ -751,24 +801,7 @@
             (try
               (when (contains? #{"idle" "disconnected"} (get-in @ui-state [:orders-state :status]))
                 (set-orders-state! "loading" "Loading open orders..."))
-              (let [result (async/<! (ib.orders/open-orders-snapshot!
-                                       conn
-                                       {:mode :open
-                                        :timeout-ms (ib-snapshot-timeout-ms)}))]
-                (if (:ok result)
-                  (let [rows (mapv to-order-row (:orders result))]
-                    (clear-cell-error! :orders)
-                    (swap! ui-state assoc :orders rows)
-                    (set-orders-state! "ready")
-                    (broadcast! {:type "orders" :data rows}))
-                  (do
-                    (set-cell-error! :orders (if (orders-timeout? result)
-                                               "IB Timeout"
-                                               "IB Error"))
-                    (set-orders-state! (if (orders-timeout? result) "timeout" "error")
-                                       (if (orders-timeout? result)
-                                         "Open orders snapshot timed out."
-                                         "Open orders snapshot failed.")))))
+              (refresh-open-orders! conn :open)
               (finally
                 (reset! orders-in-flight? false))))))
       (let [refresh-ms (ib-refresh-ms)]

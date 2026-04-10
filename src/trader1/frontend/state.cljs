@@ -18,6 +18,14 @@
 (defn- add-ib-log-entry [log entry]
   (vec (take 100 (conj log entry))))
 
+(defn- normalize-orders [rows]
+  (->> (or rows [])
+       (reduce (fn [acc row]
+                 (assoc acc (:order-id row) row))
+               (array-map))
+       vals
+       vec))
+
 (defn dispatch! [{:keys [type data]}]
   (case type
     "connection"
@@ -42,7 +50,7 @@
     (swap! app-state assoc :positions (or data []))
 
     "orders"
-    (swap! app-state assoc :orders (or data []))
+    (swap! app-state assoc :orders (normalize-orders data))
 
     "orders-state"
     (swap! app-state assoc :orders-state data)

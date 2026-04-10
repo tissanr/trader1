@@ -200,3 +200,92 @@
                          :currency "USD"
                          :timeout-ms 5000}}
                  @market-data-call)))))))
+
+(deftest ib-place-order-handler-test
+  (testing "supports limit orders and refreshes open orders after placement"
+    (let [placed-order (atom nil)
+          refresh-call (atom nil)]
+      (with-redefs [web/ib-conn (fn [] :fake-conn)
+                    web/ib-snapshot-timeout-ms (fn [] 5000)
+                    ib.contract/contract-details-snapshot!
+                    (fn [_ _ _]
+                      (let [ch (async/chan 1)]
+                        (async/>!! ch {:ok true
+                                       :contracts [{:contract {:symbol "AAPL"
+                                                               :conId 265598
+                                                               :secType "STK"
+                                                               :exchange "SMART"
+                                                               :primaryExch "NASDAQ"
+                                                               :currency "USD"}}]})
+                        (async/close! ch)
+                        ch))
+                    ib.client/place-order!
+                    (fn [_ payload]
+                      (reset! placed-order payload)
+                      12345)
+                    web/refresh-open-orders!
+                    (fn [_ mode]
+                      (reset! refresh-call mode)
+                      {:ok true :rows []})]
+        (let [resp (#'web/ib-place-order-handler {:params {:symbol "AAPL"
+                                                           :exchange "SMART"
+                                                           :currency "USD"
+                                                           :action "SELL"
+                                                           :quantity "1"
+                                                           :order-type "LMT"
+                                                           :limit-price "400"}})
+              body (json/parse-string (:body resp) true)]
+          (is (= 200 (:status resp)))
+          (is (= {:ok true
+                  :order-id 12345
+                  :symbol "AAPL"
+                  :action "SELL"
+                  :quantity 1
+                  :order-type "LMT"
+                  :limit-price 400.0
+                  :con-id 265598
+                  :orders-refresh-ok true}
+                 body))
+          (is (= {:contract {:symbol "AAPL"
+                             :sec-type "STK"
+                             :exchange "SMART"
+                             :primary-exch "NASDAQ"
+                             :currency "USD"
+                             :con-id 265598}
+                  :order {:action "SELL"
+                          :order-type "LMT"
+                          :total-quantity 1
+                          :lmt-price 400.0
+                          :transmit true}}
+                 @placed-order))
+          (is (= :all @refresh-call)))))))
+
+(deftest remember-open-order-test
+  (testing "live open-order events immediately update the orders table state"
+    (reset! web/last-order-status
+            {42 {:order-id 42
+                 :status-text "Submitted"
+                 :filled 0.0
+                 :remaining 1.0}})
+    (reset! web/last-open-orders (sorted-map))
+    (reset! web/ui-state (assoc @web/ui-state :orders [] :orders-state {:status "idle"}))
+    (#'web/remember-open-order! {:order-id 42
+                                 :account "DU123"
+                                 :contract {:symbol "AAPL"}
+                                 :order {:action "SELL"
+                                         :orderType "LMT"
+                                         :totalQuantity 1.0
+                                         :lmtPrice 400.0}
+                                 :order-state {:status "PreSubmitted"}})
+    (is (= [{:order-id 42
+             :account-id "DU123"
+             :symbol "AAPL"
+             :action "SELL"
+             :order-type "LMT"
+             :quantity 1.0
+             :limit-price 400.0
+             :status "Submitted"
+             :filled 0.0
+             :remaining 1.0}]
+           (:orders @web/ui-state)))
+    (is (= "ready" (get-in @web/ui-state [:orders-state :status])))))

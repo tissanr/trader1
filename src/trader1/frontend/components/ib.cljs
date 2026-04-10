@@ -80,7 +80,7 @@
       [:tbody
        (if (seq rows)
          (for [row rows]
-           ^{:key (str (:order-id row) ":" (:status row))}
+           ^{:key (str (:order-id row))}
            [:tr
             [:td (:order-id row)]
             [:td (:account-id row)]
@@ -128,6 +128,8 @@
                             ["Refresh Orders"      "/ib/refresh/orders"]
                             ["AAPL Quote"          "/ib/quote?symbol=AAPL&exchange=SMART&currency=USD"]
                             ["Buy 10 AAPL (MKT)"   "/ib/order?symbol=AAPL&exchange=SMART&currency=USD&action=BUY&quantity=10"]
+                            ["Sell 1 AAPL (MKT)"   "/ib/order?symbol=AAPL&exchange=SMART&currency=USD&action=SELL&quantity=1"]
+                            ["Sell 1 AAPL @ 400 LMT" "/ib/order?symbol=AAPL&exchange=SMART&currency=USD&action=SELL&quantity=1&order-type=LMT&limit-price=400"]
                             ["Account Summary"      "/ib/account-summary"]]]
         ^{:key label}
         [:button.ib-btn {:on-click #(ib-post! action)} label])]
