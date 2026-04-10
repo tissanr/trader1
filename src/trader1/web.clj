@@ -457,13 +457,33 @@
   (let [symbol      (or (get-in request [:params :symbol]) "AAPL")
         exchange    (or (get-in request [:params :exchange]) "SMART")
         currency    (or (get-in request [:params :currency]) "USD")
-        action      (or (get-in request [:params :action]) "BUY")
+        action      (some-> (or (get-in request [:params :action]) "BUY") str/upper-case)
         order-type  (-> (or (get-in request [:params :order-type]) "MKT") str/upper-case)
         quantity    (parse-long-param (get-in request [:params :quantity]) "1")
         limit-price (parse-double-param (get-in request [:params :limit-price]))
+        normalized-limit-price (when (= "LMT" order-type) limit-price)
         conn        (ib-conn)]
-    (if-not conn
+    (cond
+      (str/blank? symbol)
+      (ib-json-response {:ok false :message "Symbol is required"})
+
+      (not (#{"BUY" "SELL"} action))
+      (ib-json-response {:ok false :message "Action must be BUY or SELL"})
+
+      (not (#{"MKT" "LMT"} order-type))
+      (ib-json-response {:ok false :message "Order type must be MKT or LMT"})
+
+      (<= quantity 0)
+      (ib-json-response {:ok false :message "Quantity must be greater than 0"})
+
+      (and (= "LMT" order-type)
+           (or (nil? normalized-limit-price)
+               (<= normalized-limit-price 0)))
+      (ib-json-response {:ok false :message "Limit price must be greater than 0 for LMT orders"})
+
+      (not conn)
       (ib-json-response {:ok false :message "Not connected to IB"})
+      :else
       (try
         (let [cd-result (async/<!! (ib.contract/contract-details-snapshot!
                                      conn
@@ -489,7 +509,7 @@
                                  :order {:action action
                                          :order-type order-type
                                          :total-quantity quantity
-                                         :lmt-price limit-price
+                                         :lmt-price normalized-limit-price
                                          :transmit true}})
                       orders-result (refresh-open-orders! conn :all)]
                   (ib-json-response {:ok true
@@ -498,7 +518,7 @@
                                      :action action
                                      :quantity quantity
                                      :order-type order-type
-                                     :limit-price limit-price
+                                     :limit-price normalized-limit-price
                                      :con-id con-id
                                      :orders-refresh-ok (:ok orders-result)}))))))
         (catch Exception e

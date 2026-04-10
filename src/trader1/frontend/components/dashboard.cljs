@@ -35,7 +35,7 @@
       ;; ── IB section ────────────────────────────────────────────────────
       [:div#dashboard-grid
        [ib/portfolio-balance]
-       [:section#dashboard-empty-cell {:aria-hidden "true"}]
+       [ib/order-panel]
        [ib/positions]
        [ib/orders]]
 

@@ -6,11 +6,11 @@ In progress
 
 ## Goal
 
-Make Interactive Brokers open orders more reliable, understandable, and useful in the dashboard before adding order submission.
+Make Interactive Brokers open orders more reliable, understandable, and useful in the dashboard, and add a minimal IB order panel that is tightly coupled to the portfolio and open-orders view.
 
 ## Why Now
 
-If users cannot trust what the app shows for existing IB orders, adding order submission will increase confusion and risk. This phase improves visibility into the current broker state first.
+If users cannot trust what the app shows for existing IB orders, adding order submission will increase confusion and risk. This phase now covers both sides of that workflow: users need to see open orders clearly, and they need a minimal order-entry panel in the IB portfolio area so submission and visibility can be tested together.
 
 ## Scope
 
@@ -18,13 +18,16 @@ If users cannot trust what the app shows for existing IB orders, adding order su
 - [ ] Improve data completeness and status clarity where the wrapper and API allow it
 - [ ] Make disconnected or partial-data states visible to the user
 - [ ] Reduce ambiguity between "no orders", "loading", "timed out", and "disconnected"
-- [ ] Prepare the data shape for later order submission feedback
+- [ ] Add a minimal IB order panel that is accessible from the IB portfolio section
+- [ ] Support a small first order-entry path that feeds directly into the open-orders view
+- [ ] Prepare the data shape and UI flow for later, broader order submission feedback
 
 ## Out Of Scope
 
-- Submitting new IB orders
 - Editing existing IB orders
 - Supporting every IB order type
+- Advanced order types beyond the first minimal panel
+- Multi-step trade workflows, execution history, or risk tooling
 
 ## Technical Areas
 
@@ -32,7 +35,9 @@ If users cannot trust what the app shows for existing IB orders, adding order su
 - backend IB snapshot and event flow
 - websocket payload shape
 - frontend orders table and cell error handling
-- tests around order normalization and failure modes
+- frontend IB portfolio/order panel layout
+- backend order submission path and post-submit refresh behavior
+- tests around order normalization, submission handling, and failure modes
 
 ## Tasks
 
@@ -40,22 +45,27 @@ If users cannot trust what the app shows for existing IB orders, adding order su
 - [ ] Decide which order fields are required for a useful operator view
 - [ ] Improve normalization of status, quantities, prices, and timestamps if available
 - [ ] Make timeout and disconnected behavior clearer in payloads and UI
-- [ ] Add or update tests for normalized order rows and error states
+- [ ] Define the minimal order panel fields and where it lives in the IB portfolio section
+- [ ] Implement a first IB order-entry path with safe defaults and limited scope
+- [ ] Refresh or reconcile open orders immediately after submission
+- [ ] Add or update tests for normalized order rows, submission handling, and error states
 - [ ] Validate behavior with live or simulated IB data
 
 ## Acceptance Criteria
 
 - [ ] The IB orders table clearly distinguishes empty state, timeout state, and disconnected state
 - [ ] Order rows include the most important fields needed for trading decisions
-- [ ] The data shape is stable enough to reuse in later order submission phases
-- [ ] Relevant tests cover normalization and error handling
+- [ ] A user can access a minimal IB order panel directly from the IB portfolio section
+- [ ] A user can submit at least one simple IB order path and see the result reflected in the open-orders area within a reasonable time
+- [ ] The data shape and UI flow are stable enough to reuse in later order submission phases
+- [ ] Relevant tests cover normalization, submission, and error handling
 - [ ] Existing IB views still work after the changes
 
 ## Notes
 
-Key open question:
+Open planning change:
 
-- Should this phase extend `ib-cl-wrap`, or can the needed improvements be done in `trader1` with better mapping and UI handling?
+- Phase 03 now includes a minimal IB order panel and first submission path, so Phase 04 should narrow toward hardening and broader order-entry scope rather than introducing the first UI from scratch.
 
 Likely useful fields:
 
@@ -68,5 +78,12 @@ Likely useful fields:
 - filled
 - remaining
 - account
+
+Recommended first panel scope:
+
+- stocks only
+- market and limit orders only
+- buy and sell only
+- panel lives inside or directly adjacent to the IB portfolio section
 
 If execution-related timestamps are available cheaply, they may be useful later but are not required for this phase.

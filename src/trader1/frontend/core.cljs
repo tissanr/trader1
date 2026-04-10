@@ -1,14 +1,19 @@
 (ns trader1.frontend.core
-  (:require [reagent.dom :as rdom]
+  (:require [reagent.dom.client :as rdom]
             [trader1.frontend.state :as state]
             [trader1.frontend.components.dashboard :as dashboard]))
 
+(defonce root (atom nil))
+
 (defn mount! []
-  (rdom/render [dashboard/root] (js/document.getElementById "app")))
+  (let [container (js/document.getElementById "app")]
+    (when-not @root
+      (reset! root (rdom/create-root container)))
+    (rdom/render @root [dashboard/root])))
 
 (defn init! []
-  (state/connect-ws!)
-  (mount!))
+  (mount!)
+  (state/connect-ws!))
 
 (defn reload! []
   ;; Called by shadow-cljs after hot-reload; re-render without reconnecting WS

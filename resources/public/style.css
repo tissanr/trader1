@@ -239,6 +239,12 @@ li.empty {
   color: #ff7272;
 }
 
+.cell-info {
+  margin-top: .6rem;
+  font-size: .82rem;
+  color: #7eb8e8;
+}
+
 #settings form {
   display: flex;
   flex-direction: column;
@@ -287,10 +293,68 @@ li.empty {
 
 #settings button[type=submit]:hover { background: #ffd050; }
 
+#ib-order-panel {
+  min-height: auto;
+}
+
+.ib-order-help {
+  color: #888;
+  font-size: .82rem;
+  margin-bottom: .9rem;
+  line-height: 1.4;
+}
+
+.ib-order-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .8rem;
+}
+
+.ib-order-form label {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  color: #aaa;
+  font-size: .78rem;
+}
+
+.ib-order-form input,
+.ib-order-form select {
+  width: 100%;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #eee;
+  font-size: .9rem;
+  padding: .5rem .65rem;
+}
+
+.ib-order-form input:focus,
+.ib-order-form select:focus {
+  outline: none;
+  border-color: #f0c040;
+}
+
+.ib-order-form input:disabled {
+  color: #666;
+  background: #151515;
+}
+
+.ib-order-actions {
+  display: flex;
+  gap: .5rem;
+  margin-top: .9rem;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 1200px) {
   #kraken-grid,
   #dashboard-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ib-order-form {
+    grid-template-columns: 1fr;
   }
 }
 

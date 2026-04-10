@@ -26,11 +26,12 @@ Detailed scope, tasks, and acceptance criteria live in [`doc/phases/`](./phases/
 - Phase 07: Unified order ticket - planned
 - Phase 08: Safety and audit layer - planned
 - Phase 09: Historical portfolio tracking - planned
-- Phase 10: Instrument grouping and exposure views - planned
-- Phase 11: Alerts and thresholds - planned
-- Phase 12: Connection health dashboard - planned
-- Phase 13: Sandbox mode - planned
-- Phase 14: Hyperliquid integration - planned
+- Phase 10: Annual transaction report - planned
+- Phase 11: Instrument grouping and exposure views - planned
+- Phase 12: Alerts and thresholds - planned
+- Phase 13: Connection health dashboard - planned
+- Phase 14: Sandbox mode - planned
+- Phase 15: Hyperliquid integration - planned
 
 ## Notes On Sequence
 
