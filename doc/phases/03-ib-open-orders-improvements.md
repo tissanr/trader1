@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress
+Done
 
 ## Goal
 
@@ -14,13 +14,13 @@ If users cannot trust what the app shows for existing IB orders, adding order su
 
 ## Scope
 
-- [ ] Review how IB open orders are fetched, normalized, and pushed to the UI
-- [ ] Improve data completeness and status clarity where the wrapper and API allow it
-- [ ] Make disconnected or partial-data states visible to the user
-- [ ] Reduce ambiguity between "no orders", "loading", "timed out", and "disconnected"
-- [ ] Add a minimal IB order panel that is accessible from the IB portfolio section
-- [ ] Support a small first order-entry path that feeds directly into the open-orders view
-- [ ] Prepare the data shape and UI flow for later, broader order submission feedback
+- [x] Review how IB open orders are fetched, normalized, and pushed to the UI
+- [x] Improve data completeness and status clarity where the wrapper and API allow it
+- [x] Make disconnected or partial-data states visible to the user
+- [x] Reduce ambiguity between "no orders", "loading", "timed out", and "disconnected"
+- [x] Add a minimal IB order panel that is accessible from the IB portfolio section
+- [x] Support a small first order-entry path that feeds directly into the open-orders view
+- [x] Prepare the data shape and UI flow for later, broader order submission feedback
 
 ## Out Of Scope
 
@@ -41,31 +41,35 @@ If users cannot trust what the app shows for existing IB orders, adding order su
 
 ## Tasks
 
-- [ ] Inspect the current IB open-orders flow from API wrapper to UI table
-- [ ] Decide which order fields are required for a useful operator view
-- [ ] Improve normalization of status, quantities, prices, and timestamps if available
-- [ ] Make timeout and disconnected behavior clearer in payloads and UI
-- [ ] Define the minimal order panel fields and where it lives in the IB portfolio section
-- [ ] Implement a first IB order-entry path with safe defaults and limited scope
-- [ ] Refresh or reconcile open orders immediately after submission
-- [ ] Add or update tests for normalized order rows, submission handling, and error states
-- [ ] Validate behavior with live or simulated IB data
+- [x] Inspect the current IB open-orders flow from API wrapper to UI table
+- [x] Decide which order fields are required for a useful operator view
+- [x] Improve normalization of status, quantities, prices, and timestamps if available
+- [x] Make timeout and disconnected behavior clearer in payloads and UI
+- [x] Define the minimal order panel fields and where it lives in the IB portfolio section
+- [x] Implement a first IB order-entry path with safe defaults and limited scope
+- [x] Refresh or reconcile open orders immediately after submission
+- [x] Add or update tests for normalized order rows, submission handling, and error states
+- [x] Validate behavior with live or simulated IB data
 
 ## Acceptance Criteria
 
-- [ ] The IB orders table clearly distinguishes empty state, timeout state, and disconnected state
-- [ ] Order rows include the most important fields needed for trading decisions
-- [ ] A user can access a minimal IB order panel directly from the IB portfolio section
-- [ ] A user can submit at least one simple IB order path and see the result reflected in the open-orders area within a reasonable time
-- [ ] The data shape and UI flow are stable enough to reuse in later order submission phases
-- [ ] Relevant tests cover normalization, submission, and error handling
-- [ ] Existing IB views still work after the changes
+- [x] The IB orders table clearly distinguishes empty state, timeout state, and disconnected state
+- [x] Order rows include the most important fields needed for trading decisions
+- [x] A user can access a minimal IB order panel directly from the IB portfolio section
+- [x] A user can submit at least one simple IB order path and see the result reflected in the open-orders area within a reasonable time
+- [x] The data shape and UI flow are stable enough to reuse in later order submission phases
+- [x] Relevant tests cover normalization, submission, and error handling
+- [x] Existing IB views still work after the changes
 
 ## Notes
 
 Open planning change:
 
 - Phase 03 now includes a minimal IB order panel and first submission path, so Phase 04 should narrow toward hardening and broader order-entry scope rather than introducing the first UI from scratch.
+
+Completion note:
+
+- Phase 03 now covers explicit IB open-order state handling, live order visibility updates, a minimal order panel in the IB portfolio area, and the first market/limit submission path for stocks.
 
 Likely useful fields:
 

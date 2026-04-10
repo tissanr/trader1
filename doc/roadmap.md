@@ -14,7 +14,7 @@ Detailed scope, tasks, and acceptance criteria live in [`doc/phases/`](./phases/
 
 - Phase 01: Development planning foundation - done
 - Phase 02: Cleanup and runtime configuration - done
-- Phase 03: IB open orders improvements - in progress
+- Phase 03: IB open orders improvements - done
 
 ## Next
 - Phase 04: IB order submission - planned
