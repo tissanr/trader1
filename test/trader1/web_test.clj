@@ -1,9 +1,11 @@
 (ns trader1.web-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.core.async :as async]
+            [clojure.test :refer [deftest is testing]]
             [cheshire.core :as json]
             [org.httpkit.server :as httpkit]
             [trader1.auth :as auth]
             [trader1.settings :as settings]
+            [trader1.web :as web]
             [trader1.web :refer [broadcast! connected-channels
                                   login-page dashboard-page
                                   settings-page settings-handler
@@ -47,7 +49,7 @@
                                                :orders-ms  "manual"}})]
           (is (= 302 (:status resp)))
           (is (= "/dashboard" (get-in resp [:headers "Location"])))
-          (is (= {:server {:port 3000}
+          (is (= {:server {:port 3001}
                   :services {:ib {:enabled true
                                   :host "127.0.0.1"
                                   :port 4002
@@ -126,3 +128,164 @@
     (is (thrown-with-msg? clojure.lang.ExceptionInfo
           #"websocket payload for connection"
           (broadcast! {:type "connection" :data {:status "maybe"}})))))
+
+(deftest to-order-row-test
+  (testing "normalizes IB open order rows with broker identifiers and stream status"
+    (reset! web/last-order-status
+            {11 {:order-id 11
+                 :status-text "Submitted"
+                 :filled 2.0
+                 :remaining 8.0}})
+    (is (= {:order-id 11
+            :account-id "DU123"
+            :symbol "AAPL"
+            :action "BUY"
+            :order-type "LMT"
+            :quantity 10.0
+            :limit-price 150.25
+            :status "Submitted"
+            :filled 2.0
+            :remaining 8.0}
+           (#'web/to-order-row {:order-id 11
+                                :account "DU123"
+                                :contract {:symbol "AAPL"}
+                                :order {:action "BUY"
+                                        :orderType "LMT"
+                                        :totalQuantity 10.0
+                                        :lmtPrice 150.25}
+                                :order-state {:status "PreSubmitted"}})))))
+
+(deftest benign-ib-message-test
+  (testing "suppresses routine IB farm connectivity chatter"
+    (is (true? (#'web/benign-ib-message? "Sec-def data farm connection is broken:secdefil")))
+    (is (true? (#'web/benign-ib-message? "Market data farm connection is OK:usfarm")))
+    (is (false? (#'web/benign-ib-message? "Order rejected: insufficient margin")))))
+
+(deftest ib-quote-handler-test
+  (testing "requests market data with the resolved contract identifiers"
+    (let [market-data-call (atom nil)]
+      (with-redefs [web/ib-conn (fn [] :fake-conn)
+                    web/ib-snapshot-timeout-ms (fn [] 5000)
+                    ib.contract/contract-details-snapshot!
+                    (fn [_ contract-opts opts]
+                      (let [ch (async/chan 1)]
+                        (async/>!! ch {:ok true
+                                       :contracts [{:contract {:symbol "AAPL"
+                                                               :conId 265598
+                                                               :secType "STK"
+                                                               :exchange "SMART"
+                                                               :primaryExch "NASDAQ"
+                                                               :currency "USD"}}]})
+                        (async/close! ch)
+                        ch))
+                    ib.market-data/market-data-snapshot!
+                    (fn [conn symbol opts]
+                      (reset! market-data-call {:conn conn :symbol symbol :opts opts})
+                      (let [ch (async/chan 1)]
+                        (async/>!! ch {:ok true :symbol symbol :ticks {:last 200.0}})
+                        (async/close! ch)
+                        ch))]
+        (let [resp (#'web/ib-quote-handler {:params {:symbol "AAPL"
+                                                     :exchange "SMART"
+                                                     :currency "USD"}})
+              body (json/parse-string (:body resp) true)]
+          (is (= 200 (:status resp)))
+          (is (= {:ok true :symbol "AAPL" :ticks {:last 200.0}} body))
+          (is (= {:conn :fake-conn
+                  :symbol "AAPL"
+                  :opts {:con-id 265598
+                         :sec-type "STK"
+                         :exchange "NASDAQ"
+                         :primary-exch "NASDAQ"
+                         :currency "USD"
+                         :timeout-ms 5000}}
+                 @market-data-call)))))))
+
+(deftest ib-place-order-handler-test
+  (testing "supports limit orders and refreshes open orders after placement"
+    (let [placed-order (atom nil)
+          refresh-call (atom nil)]
+      (with-redefs [web/ib-conn (fn [] :fake-conn)
+                    web/ib-snapshot-timeout-ms (fn [] 5000)
+                    ib.contract/contract-details-snapshot!
+                    (fn [_ _ _]
+                      (let [ch (async/chan 1)]
+                        (async/>!! ch {:ok true
+                                       :contracts [{:contract {:symbol "AAPL"
+                                                               :conId 265598
+                                                               :secType "STK"
+                                                               :exchange "SMART"
+                                                               :primaryExch "NASDAQ"
+                                                               :currency "USD"}}]})
+                        (async/close! ch)
+                        ch))
+                    ib.client/place-order!
+                    (fn [_ payload]
+                      (reset! placed-order payload)
+                      12345)
+                    web/refresh-open-orders!
+                    (fn [_ mode]
+                      (reset! refresh-call mode)
+                      {:ok true :rows []})]
+        (let [resp (#'web/ib-place-order-handler {:params {:symbol "AAPL"
+                                                           :exchange "SMART"
+                                                           :currency "USD"
+                                                           :action "SELL"
+                                                           :quantity "1"
+                                                           :order-type "LMT"
+                                                           :limit-price "400"}})
+              body (json/parse-string (:body resp) true)]
+          (is (= 200 (:status resp)))
+          (is (= {:ok true
+                  :order-id 12345
+                  :symbol "AAPL"
+                  :action "SELL"
+                  :quantity 1
+                  :order-type "LMT"
+                  :limit-price 400.0
+                  :con-id 265598
+                  :orders-refresh-ok true}
+                 body))
+          (is (= {:contract {:symbol "AAPL"
+                             :sec-type "STK"
+                             :exchange "SMART"
+                             :primary-exch "NASDAQ"
+                             :currency "USD"
+                             :con-id 265598}
+                  :order {:action "SELL"
+                          :order-type "LMT"
+                          :total-quantity 1
+                          :lmt-price 400.0
+                          :transmit true}}
+                 @placed-order))
+          (is (= :all @refresh-call)))))))
+
+(deftest remember-open-order-test
+  (testing "live open-order events immediately update the orders table state"
+    (reset! web/last-order-status
+            {42 {:order-id 42
+                 :status-text "Submitted"
+                 :filled 0.0
+                 :remaining 1.0}})
+    (reset! web/last-open-orders (sorted-map))
+    (reset! web/ui-state (assoc @web/ui-state :orders [] :orders-state {:status "idle"}))
+    (#'web/remember-open-order! {:order-id 42
+                                 :account "DU123"
+                                 :contract {:symbol "AAPL"}
+                                 :order {:action "SELL"
+                                         :orderType "LMT"
+                                         :totalQuantity 1.0
+                                         :lmtPrice 400.0}
+                                 :order-state {:status "PreSubmitted"}})
+    (is (= [{:order-id 42
+             :account-id "DU123"
+             :symbol "AAPL"
+             :action "SELL"
+             :order-type "LMT"
+             :quantity 1.0
+             :limit-price 400.0
+             :status "Submitted"
+             :filled 0.0
+             :remaining 1.0}]
+           (:orders @web/ui-state)))
+    (is (= "ready" (get-in @web/ui-state [:orders-state :status])))))

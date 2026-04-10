@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress
+Done
 
 ## Goal
 
@@ -14,11 +14,11 @@ This phase lays the foundation for everything that follows. Before adding order 
 
 ## Scope
 
-- [ ] Review hardcoded runtime values in backend code and identify which should move into config
-- [ ] Expand the settings model to support service-specific configuration cleanly
-- [ ] Add enable and disable flags for major services where practical
-- [ ] Clarify which settings are local-only, required, optional, or planned
-- [ ] Improve documentation so a contributor can understand runtime setup without reading implementation details
+- [x] Review hardcoded runtime values in backend code and identify which should move into config
+- [x] Expand the settings model to support service-specific configuration cleanly
+- [x] Add enable and disable flags for major services where practical
+- [x] Clarify which settings are local-only, required, optional, or planned
+- [x] Improve documentation so a contributor can understand runtime setup without reading implementation details
 
 ## Out Of Scope
 
@@ -35,20 +35,20 @@ This phase lays the foundation for everything that follows. Before adding order 
 
 ## Tasks
 
-- [ ] Audit current hardcoded values in `trader1.core`, `trader1.web`, `trader1.kraken`, and related namespaces
-- [ ] Define a clearer config shape for runtime services
-- [ ] Add or improve spec coverage for settings and defaults
-- [ ] Move selected hardcoded settings into `config/settings.edn` or environment-backed config
-- [ ] Document the configuration model in the README and example config files
-- [ ] Confirm the app still starts with sensible defaults
+- [x] Audit current hardcoded values in `trader1.core`, `trader1.web`, `trader1.kraken`, and related namespaces
+- [x] Define a clearer config shape for runtime services
+- [x] Add or improve spec coverage for settings and defaults
+- [x] Move selected hardcoded settings into `config/settings.edn` or environment-backed config
+- [x] Document the configuration model in the README and example config files
+- [x] Confirm the app still starts with sensible defaults
 
 ## Acceptance Criteria
 
-- [ ] Important runtime values are no longer scattered through the code without explanation
-- [ ] Service-related settings have a documented home
-- [ ] The app can still boot with a predictable local setup
-- [ ] Automated checks cover parsing or validation for the updated settings structure
-- [ ] This phase makes future service integrations easier rather than adding configuration sprawl
+- [x] Important runtime values are no longer scattered through the code without explanation
+- [x] Service-related settings have a documented home
+- [x] The app can still boot with a predictable local setup
+- [x] Automated checks cover parsing or validation for the updated settings structure
+- [x] This phase makes future service integrations easier rather than adding configuration sprawl
 
 ## Notes
 

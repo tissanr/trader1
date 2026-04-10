@@ -64,21 +64,26 @@
 ;; ── Orders table ─────────────────────────────────────────────────────────────
 
 (defn orders []
-  (let [rows  (:orders @app-state)
-        error (get-in @app-state [:errors :orders])]
+  (let [rows (:orders @app-state)
+        {:keys [status message]} (:orders-state @app-state)
+        error (get-in @app-state [:errors :orders])
+        notice (or message error)]
     [:section#orders-cell
      [:h2 "Offene Orders"]
-     (when error [:p.cell-error error])
+     (when notice
+       [:p {:class (if (= "loading" status) "cell-info" "cell-error")} notice])
      [:table.data-table
       [:thead
-       [:tr [:th "Symbol"] [:th "Action"] [:th "OrderType"]
+       [:tr [:th "OrderId"] [:th "Account"] [:th "Symbol"] [:th "Action"] [:th "OrderType"]
             [:th "Quantity"] [:th "LimitPrice"] [:th "Status"]
             [:th "Filled"] [:th "Remaining"]]]
       [:tbody
        (if (seq rows)
          (for [row rows]
-           ^{:key (str (:symbol row) (:action row) (:status row))}
+           ^{:key (str (:order-id row))}
            [:tr
+            [:td (:order-id row)]
+            [:td (:account-id row)]
             [:td (:symbol row)]
             [:td (:action row)]
             [:td (:order-type row)]
@@ -87,7 +92,15 @@
             [:td (:status row)]
             [:td (:filled row)]
             [:td (:remaining row)]])
-         [:tr [:td {:col-span 8 :class "empty"} "No open orders"]])]]]))
+         [:tr
+          [:td {:col-span 10 :class "empty"}
+           (case status
+             "loading" "Loading open orders..."
+             "timeout" "Open orders snapshot timed out"
+             "disconnected" "Reconnect to IB to load open orders"
+             "error" "Open orders snapshot failed"
+             "ready" "No open orders"
+             "Waiting for first open-orders snapshot...")]])]]]))
 
 ;; ── Debug panel ──────────────────────────────────────────────────────────────
 
@@ -115,6 +128,8 @@
                             ["Refresh Orders"      "/ib/refresh/orders"]
                             ["AAPL Quote"          "/ib/quote?symbol=AAPL&exchange=SMART&currency=USD"]
                             ["Buy 10 AAPL (MKT)"   "/ib/order?symbol=AAPL&exchange=SMART&currency=USD&action=BUY&quantity=10"]
+                            ["Sell 1 AAPL (MKT)"   "/ib/order?symbol=AAPL&exchange=SMART&currency=USD&action=SELL&quantity=1"]
+                            ["Sell 1 AAPL @ 400 LMT" "/ib/order?symbol=AAPL&exchange=SMART&currency=USD&action=SELL&quantity=1&order-type=LMT&limit-price=400"]
                             ["Account Summary"      "/ib/account-summary"]]]
         ^{:key label}
         [:button.ib-btn {:on-click #(ib-post! action)} label])]

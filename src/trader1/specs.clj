@@ -11,6 +11,7 @@
     "portfolio-balance"
     "positions"
     "orders"
+    "orders-state"
     "cell-error"
     "ib-error"})
 
@@ -62,6 +63,8 @@
   (s/nilable (s/coll-of ::position-row :kind vector?)))
 
 (s/def ::action non-blank-string?)
+(s/def ::order-id scalar-display-value?)
+(s/def ::account-id non-blank-string?)
 (s/def ::order-type non-blank-string?)
 (s/def ::quantity scalar-display-value?)
 (s/def ::limit-price (s/nilable scalar-display-value?))
@@ -69,13 +72,24 @@
 (s/def ::filled (s/nilable scalar-display-value?))
 (s/def ::remaining (s/nilable scalar-display-value?))
 (s/def ::order-row
-  (s/keys :req-un [::symbol ::action ::order-type ::quantity ::limit-price
-                   ::status ::filled ::remaining]))
+  (s/keys :req-un [::order-id ::account-id ::symbol ::action ::order-type
+                   ::quantity ::limit-price ::status ::filled ::remaining]))
 (s/def ::orders
   (s/nilable (s/coll-of ::order-row :kind vector?)))
 
-(s/def ::status #{"connected" "disconnected"})
-(s/def ::connection-data (s/keys :req-un [::status]))
+(s/def ::orders-state-status #{"idle" "loading" "ready" "timeout" "error" "disconnected"})
+(s/def ::order-count nat-int?)
+(s/def ::updated-at nat-int?)
+(s/def ::connection-status #{"connected" "disconnected"})
+(s/def ::orders-state-data
+  (s/and
+   (s/keys :opt-un [::message ::order-count ::updated-at])
+   #(contains? % :status)
+   #(s/valid? ::orders-state-status (:status %))))
+(s/def ::connection-data
+  (s/and map?
+         #(contains? % :status)
+         #(s/valid? ::connection-status (:status %))))
 
 (s/def ::asset-balance string?)
 (s/def ::kraken-balance
@@ -126,6 +140,9 @@
 (defmethod websocket-message-type "orders" [_]
   (s/keys :req-un [::type ::data]))
 
+(defmethod websocket-message-type "orders-state" [_]
+  (s/keys :req-un [::type ::data]))
+
 (defmethod websocket-message-type "cell-error" [_]
   (s/keys :req-un [::type ::data]))
 
@@ -165,6 +182,7 @@
                        "portfolio-balance" ::portfolio-balance
                        "positions" ::positions
                        "orders" ::orders
+                       "orders-state" ::orders-state-data
                        "cell-error" ::cell-error-data
                        "ib-error" ::ib-error-data)]
     (assert-valid! payload-spec (:data value') (str "websocket payload for " (:type value')))

@@ -1,6 +1,6 @@
 ;; Copy this file to config/settings.edn to override defaults.
 ;; Use nil for any Kraken interval to disable auto-refresh (manual mode).
-{:server {:port 3000}
+{:server {:port 3001}
  :services
  {:ib {:enabled true
        :host "127.0.0.1"
