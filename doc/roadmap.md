@@ -21,6 +21,7 @@ Detailed scope, tasks, and acceptance criteria live in [`doc/phases/`](./phases/
 
 ## Later
 
+- Phase 15: First-run setup wizard - planned
 - Phase 05: Kraken order submission - planned
 - Phase 06: Kraken order management - planned
 - Phase 07: Unified order ticket - planned

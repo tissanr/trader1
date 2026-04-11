@@ -29,3 +29,22 @@
   Use this once in the REPL to generate the hash for config/auth.edn."
   [plaintext]
   (hashers/derive plaintext {:alg :bcrypt+sha512}))
+
+(def ^:private placeholder-hash "REPLACE_WITH_BCRYPT_HASH")
+
+(defn needs-setup?
+  "Returns true when config/auth.edn is missing or still contains the
+  placeholder hash written by bootstrap-config."
+  []
+  (try
+    (boolean (some #(= placeholder-hash (:password-hash %))
+                   (:users (load-users))))
+    (catch java.io.FileNotFoundException _ true)))
+
+(defn write-config!
+  "Hashes password and writes a new config/auth.edn with a single user.
+  Overwrites any existing file."
+  [username password]
+  (spit auth-config-file
+        (pr-str {:users [{:username      username
+                          :password-hash (hash-password password)}]})))
