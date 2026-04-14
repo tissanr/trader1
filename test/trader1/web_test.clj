@@ -260,6 +260,29 @@
                  @placed-order))
           (is (= :all @refresh-call)))))))
 
+(deftest ib-place-order-validation-test
+  (testing "rejects limit orders without a positive limit price"
+    (with-redefs [web/ib-conn (fn [] :fake-conn)]
+      (let [resp (#'web/ib-place-order-handler {:params {:symbol "AAPL"
+                                                         :action "SELL"
+                                                         :quantity "1"
+                                                         :order-type "LMT"}})
+            body (json/parse-string (:body resp) true)]
+        (is (= 200 (:status resp)))
+        (is (= {:ok false
+                :message "Limit price must be greater than 0 for LMT orders"}
+               body)))))
+  (testing "rejects unsupported order types before contacting IB"
+    (with-redefs [web/ib-conn (fn [] :fake-conn)]
+      (let [resp (#'web/ib-place-order-handler {:params {:symbol "AAPL"
+                                                         :action "BUY"
+                                                         :quantity "1"
+                                                         :order-type "STP"}})
+            body (json/parse-string (:body resp) true)]
+        (is (= {:ok false
+                :message "Order type must be MKT or LMT"}
+               body))))))
+
 (deftest remember-open-order-test
   (testing "live open-order events immediately update the orders table state"
     (reset! web/last-order-status
