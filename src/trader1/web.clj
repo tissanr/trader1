@@ -18,6 +18,7 @@
             [ring.middleware.anti-forgery :refer [*anti-forgery-token*]]
             [trader1.auth :as auth]
             [trader1.kraken :as kraken]
+            [trader1.security :as security]
             [trader1.specs :as specs]
             [trader1.settings :as settings]))
 
@@ -267,6 +268,64 @@
 (defn- html-response [body]
   (-> (resp/response body)
       (resp/content-type "text/html; charset=utf-8")))
+
+(defn- setup-page
+  ([] (setup-page nil nil nil))
+  ([error-msg username kraken-key]
+   (html5
+     [:head
+      [:meta {:charset "utf-8"}]
+      [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+      [:title "Trader1 - Setup"]
+      (include-css "/style.css")]
+     [:body
+      [:div#login-box
+       [:h1 "Trader1"]
+       [:p "Create your admin account to get started."]
+       (when error-msg [:p.error error-msg])
+       [:form {:method "post" :action "/setup"}
+        (anti-forgery-field)
+        [:label "Username"
+         [:input {:type "text" :name "username" :value (or username "admin")
+                  :autofocus true :required true}]]
+        [:label "Password"
+         [:input {:type "password" :name "password" :required true}]]
+        [:label "Confirm password"
+         [:input {:type "password" :name "confirm-password" :required true}]]
+        [:details {:style "margin-top:1rem"}
+         [:summary "Kraken API credentials (optional)"]
+         [:div {:style "margin-top:0.5rem"}
+          [:label "API key"
+           [:input {:type "text" :name "kraken-key" :value (or kraken-key "")
+                    :autocomplete "off"}]]
+          [:label "API secret"
+           [:input {:type "password" :name "kraken-secret" :autocomplete "off"}]]]]
+        [:button {:type "submit"} "Set up Trader1"]]]])))
+
+(defn- setup-handler [request]
+  (when (auth/needs-setup?)
+    (let [{:keys [username password confirm-password kraken-key kraken-secret]}
+          (:params request)
+          username        (str/trim (or username ""))
+          kraken-key      (str/trim (or kraken-key ""))
+          kraken-secret   (str/trim (or kraken-secret ""))]
+      (cond
+        (str/blank? username)
+        (html-response (setup-page "Username cannot be blank." nil nil))
+
+        (str/blank? password)
+        (html-response (setup-page "Password cannot be blank." username kraken-key))
+
+        (not= password confirm-password)
+        (html-response (setup-page "Passwords do not match." username kraken-key))
+
+        :else
+        (do
+          (auth/write-config! username password)
+          (when (and (not (str/blank? kraken-key))
+                     (not (str/blank? kraken-secret)))
+            (security/write-credentials! kraken-key kraken-secret))
+          (resp/redirect "/login"))))))
 
 (defn dashboard-page []
   (html5
@@ -541,21 +600,41 @@
             (ib.client/unsubscribe-events! conn sub-ch)
             (async/close! sub-ch)))))))
 
+(defn- setup-redirect [] (resp/redirect "/setup"))
+
 (defroutes app-routes
-  (GET  "/"          _   (resp/redirect "/dashboard"))
-  (GET  "/login"     _   (html-response (login-page nil)))
-  (POST "/login"     req (login-handler req))
+  (GET  "/setup"     _   (if (auth/needs-setup?)
+                             (html-response (setup-page))
+                             (resp/redirect "/login")))
+  (POST "/setup"     req (or (setup-handler req) (resp/redirect "/login")))
+  (GET  "/"          _   (if (auth/needs-setup?)
+                             (setup-redirect)
+                             (resp/redirect "/dashboard")))
+  (GET  "/login"     _   (if (auth/needs-setup?)
+                             (setup-redirect)
+                             (html-response (login-page nil))))
+  (POST "/login"     req (if (auth/needs-setup?)
+                             (setup-redirect)
+                             (login-handler req)))
   (GET  "/logout"    req (logout-handler req))
-  (GET  "/dashboard" req (if (get-in req [:session :identity])
-                             (html-response (dashboard-page))
-                             (resp/redirect "/login")))
-  (GET  "/settings"  req (if (get-in req [:session :identity])
-                             (html-response (settings-page))
-                             (resp/redirect "/login")))
-  (POST "/settings"  req (if (get-in req [:session :identity])
-                             (settings-handler req)
-                             {:status 401 :body "Unauthorized"}))
-  (GET  "/ws"        req (websocket-handler req))
+  (GET  "/dashboard" req (if (auth/needs-setup?)
+                             (setup-redirect)
+                             (if (get-in req [:session :identity])
+                               (html-response (dashboard-page))
+                               (resp/redirect "/login"))))
+  (GET  "/settings"  req (if (auth/needs-setup?)
+                             (setup-redirect)
+                             (if (get-in req [:session :identity])
+                               (html-response (settings-page))
+                               (resp/redirect "/login"))))
+  (POST "/settings"  req (if (auth/needs-setup?)
+                             (setup-redirect)
+                             (if (get-in req [:session :identity])
+                               (settings-handler req)
+                               {:status 401 :body "Unauthorized"})))
+  (GET  "/ws"        req (if (auth/needs-setup?)
+                             {:status 403 :body "Setup required"}
+                             (websocket-handler req)))
   (POST "/ib/ping"              req (if (get-in req [:session :identity]) (ib-ping-handler req)              {:status 401 :body "Unauthorized"}))
   (POST "/ib/reconnect"         req (if (get-in req [:session :identity]) (ib-reconnect-handler req)         {:status 401 :body "Unauthorized"}))
   (POST "/ib/refresh/balance"   req (if (get-in req [:session :identity]) (ib-refresh-balance-handler req)   {:status 401 :body "Unauthorized"}))

@@ -1,6 +1,7 @@
 (ns trader1.auth-test
   (:require [clojure.test :refer [deftest is testing]]
             [buddy.hashers :as hashers]
+            [clojure.edn :as edn]
             [trader1.auth :as auth]))
 
 (def ^:private fixture-file "test/fixtures/test-auth.edn")
@@ -55,6 +56,46 @@
       (is (nil? (auth/authenticate "ghost" "testpass"))))
     (testing "returns nil for empty password"
       (is (nil? (auth/authenticate "admin" ""))))))
+
+;; --- needs-setup? ---
+
+(def ^:private placeholder-users
+  {:users [{:username "admin" :password-hash "REPLACE_WITH_BCRYPT_HASH"}]})
+
+(deftest needs-setup-test
+  (testing "returns true when file is missing"
+    (with-redefs [auth/auth-config-file "test/fixtures/nonexistent.edn"]
+      (is (true? (auth/needs-setup?)))))
+  (testing "returns true when placeholder hash is present"
+    (with-redefs [auth/load-users (fn [] placeholder-users)]
+      (is (true? (auth/needs-setup?)))))
+  (testing "returns false when a real hash is in place"
+    (with-redefs [auth/load-users (fn [] fake-users)]
+      (is (false? (auth/needs-setup?))))))
+
+;; --- write-config! ---
+
+(deftest write-config-test
+  (let [tmp-file (str (System/getProperty "java.io.tmpdir")
+                      "/trader1-test-auth-" (System/currentTimeMillis) ".edn")]
+    (try
+      (with-redefs [auth/auth-config-file tmp-file]
+        (testing "writes a parseable EDN file"
+          (auth/write-config! "testuser" "testpass")
+          (let [contents (edn/read-string (slurp tmp-file))]
+            (is (map? contents))
+            (is (= 1 (count (:users contents))))
+            (is (= "testuser" (:username (first (:users contents)))))))
+        (testing "needs-setup? returns false after write-config!"
+          (is (false? (auth/needs-setup?))))
+        (testing "authenticate succeeds with the written credentials"
+          (let [user (auth/authenticate "testuser" "testpass")]
+            (is (some? user))
+            (is (= "testuser" (:username user)))))
+        (testing "authenticate fails with wrong password"
+          (is (nil? (auth/authenticate "testuser" "wrongpass")))))
+      (finally
+        (clojure.java.io/delete-file tmp-file true)))))
 
 ;; --- hash-password ---
 
