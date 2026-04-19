@@ -304,6 +304,23 @@ li.empty {
   line-height: 1.4;
 }
 
+.ib-order-summary {
+  margin-bottom: .9rem;
+  padding: .75rem .85rem;
+  background: #141414;
+  border: 1px solid #222;
+  border-radius: 6px;
+}
+
+.ib-order-summary p + p {
+  margin-top: .4rem;
+}
+
+.ib-order-meta {
+  color: #888;
+  font-size: .78rem;
+}
+
 .ib-order-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -338,6 +355,11 @@ li.empty {
 .ib-order-form input:disabled {
   color: #666;
   background: #151515;
+}
+
+.ib-order-checkbox input {
+  width: auto;
+  align-self: flex-start;
 }
 
 .ib-order-actions {
@@ -389,6 +411,11 @@ li.empty {
 
 .ib-btn:active {
   background: #1a2530;
+}
+
+.ib-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
 }
 
 .ib-panels {

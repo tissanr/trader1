@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned
+In progress
 
 ## Goal
 
@@ -14,10 +14,10 @@ IB order submission is a primary product goal. After Phase 03 lands a minimal or
 
 ## Scope
 
-- [ ] Harden the initial IB order submission path with clearer validation and safer defaults
-- [ ] Expand the order panel beyond the first minimal workflow where justified
-- [ ] Improve success, failure, and reconciliation feedback after submission
-- [ ] Support follow-on order-entry requirements that do not fit cleanly into Phase 03
+- [x] Harden the initial IB order submission path with clearer validation and safer defaults
+- [x] Expand the order panel beyond the first minimal workflow where justified
+- [x] Improve success, failure, and reconciliation feedback after submission
+- [x] Support follow-on order-entry requirements that do not fit cleanly into Phase 03
 
 ## Out Of Scope
 
@@ -36,21 +36,21 @@ IB order submission is a primary product goal. After Phase 03 lands a minimal or
 
 ## Tasks
 
-- [ ] Review the minimal Phase 03 order panel and identify gaps that still block safe day-to-day use
-- [ ] Confirm whether wrapper changes are required and where they should live
-- [ ] Tighten the backend order request shape and validation rules
-- [ ] Expand the order-entry UI where the minimal panel is too limiting
-- [ ] Improve post-submit reconciliation and operator feedback
-- [ ] Add tests for malformed input, validation edge cases, and backend submission handling
+- [x] Review the minimal Phase 03 order panel and identify gaps that still block safe day-to-day use
+- [x] Confirm whether wrapper changes are required and where they should live
+- [x] Tighten the backend order request shape and validation rules
+- [x] Expand the order-entry UI where the minimal panel is too limiting
+- [x] Improve post-submit reconciliation and operator feedback
+- [x] Add tests for malformed input, validation edge cases, and backend submission handling
 - [ ] Validate the flow against a safe IB environment before calling the phase done
 
 ## Acceptance Criteria
 
-- [ ] The initial IB order-entry path from Phase 03 is hardened enough for repeatable use
-- [ ] Invalid input is rejected clearly before or during submission
-- [ ] Successful submission is reflected in the UI within a reasonable time
-- [ ] Open orders update without requiring a full application restart
-- [ ] Backend behavior is covered by focused tests
+- [x] The initial IB order-entry path from Phase 03 is hardened enough for repeatable use
+- [x] Invalid input is rejected clearly before or during submission
+- [x] Successful submission is reflected in the UI within a reasonable time
+- [x] Open orders update without requiring a full application restart
+- [x] Backend behavior is covered by focused tests
 
 ## Notes
 
@@ -61,3 +61,10 @@ Recommended initial scope:
 - buy and sell only
 
 Phase 03 now owns the first small, trustworthy trading path. This phase should build on that baseline rather than reintroduce it.
+
+Implementation note:
+
+- Backend requests are now normalized and validated before contract lookup, including whole-share quantity rules, DAY/GTC support, and safer defaults for outside regular trading hours.
+- The dashboard now shows explicit submission status plus whether the immediate open-orders refresh succeeded after placement.
+- Wrapper changes were not required for this slice; the hardening work stays in the local request-validation and reconciliation layer.
+- Phase status remains in progress until the updated flow is validated against a safe live or paper IB session.

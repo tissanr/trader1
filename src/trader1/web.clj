@@ -29,6 +29,7 @@
          :positions []
          :orders []
          :orders-state {:status "idle"}
+         :order-submission {:status "idle"}
          :kraken-balance nil
          :kraken-orders nil
          :kraken-portfolio-value nil
@@ -79,12 +80,16 @@
   (swap! ui-state assoc :connection :disconnected
          :orders []
          :orders-state {:status "disconnected"
-                        :message "Disconnected from IB"})
+                        :message "Disconnected from IB"}
+         :order-submission {:status "error"
+                            :message "Disconnected from IB"})
   (doseq [cell [:balance :positions :orders]]
     (set-cell-error! cell "Disconnected"))
   (broadcast! {:type "orders" :data []})
   (broadcast! {:type "orders-state" :data {:status "disconnected"
                                            :message "Disconnected from IB"}})
+  (broadcast! {:type "order-submission" :data {:status "error"
+                                               :message "Disconnected from IB"}})
   (broadcast! {:type "connection" :data {:status "disconnected"}}))
 
 (defn- mark-connected! []
@@ -136,6 +141,20 @@
   (when (some? value)
     (Double/parseDouble value)))
 
+(defn- parse-long-param-safe [value]
+  (try
+    (when-not (str/blank? (str value))
+      (Long/parseLong (str value)))
+    (catch Exception _
+      nil)))
+
+(defn- parse-double-param-safe [value]
+  (try
+    (when-not (str/blank? (str value))
+      (Double/parseDouble (str value)))
+    (catch Exception _
+      nil)))
+
 (defn- order-status-for [order-id]
   (get @last-order-status order-id {}))
 
@@ -182,7 +201,8 @@
 
 (defn- push-state-to-client! [ch]
   (let [{:keys [balance positions orders orders-state errors connection
-                kraken-balance kraken-orders kraken-portfolio-value kraken-ticker]} @ui-state]
+                order-submission kraken-balance kraken-orders
+                kraken-portfolio-value kraken-ticker]} @ui-state]
     (send-payload! ch "connection" {:status (name connection)})
     (send-payload! ch "kraken-balance" kraken-balance)
     (send-payload! ch "kraken-orders" kraken-orders)
@@ -192,9 +212,16 @@
     (send-payload! ch "positions" positions)
     (send-payload! ch "orders" orders)
     (send-payload! ch "orders-state" orders-state)
+    (send-payload! ch "order-submission" order-submission)
     (doseq [[cell message] errors]
       (send-payload! ch "cell-error" {:cell (name cell)
                                       :message message}))))
+
+(defn- set-order-submission!
+  [data]
+  (let [payload (validated ::specs/order-submission-data data "order submission")]
+    (swap! ui-state assoc :order-submission payload)
+    (broadcast! {:type "order-submission" :data payload})))
 
 (defn- publish-order-rows! [rows]
   (clear-cell-error! :orders)
@@ -245,6 +272,83 @@
    :body (json/generate-string body)})
 
 (defn- ib-conn [] (:conn @ib-runtime))
+
+(defn- submission-base [order-req]
+  (cond-> {:symbol (:symbol order-req)
+           :action (:action order-req)
+           :order-type (:order-type order-req)
+           :tif (:tif order-req)
+           :outside-rth (:outside-rth order-req)
+           :submitted-at (System/currentTimeMillis)}
+    (some? (:quantity order-req))
+    (assoc :quantity (:quantity order-req))
+    (= "LMT" (:order-type order-req))
+    (assoc :limit-price (:limit-price order-req))))
+
+(defn- error-response [message]
+  {:ok false :message message})
+
+(defn- normalize-order-request [params]
+  (let [symbol      (some-> (or (:symbol params) "") str/trim str/upper-case)
+        action      (some-> (or (:action params) "BUY") str/trim str/upper-case)
+        order-type  (some-> (or (:order-type params) "MKT") str/trim str/upper-case)
+        exchange    (some-> (or (:exchange params) "SMART") str/trim str/upper-case)
+        currency    (some-> (or (:currency params) "USD") str/trim str/upper-case)
+        tif         (some-> (or (:tif params) "DAY") str/trim str/upper-case)
+        quantity    (parse-long-param-safe (or (:quantity params) "1"))
+        limit-price (parse-double-param-safe (:limit-price params))
+        outside-rth (contains? #{"true" "on" "1" true} (:outside-rth params))]
+    (cond-> {:symbol symbol
+             :action action
+             :order-type order-type
+             :quantity quantity
+             :exchange exchange
+             :currency currency
+             :tif tif
+             :outside-rth outside-rth}
+      (= "LMT" order-type) (assoc :limit-price limit-price))))
+
+(defn- validate-order-request [order-req]
+  (cond
+    (str/blank? (:symbol order-req))
+    "Symbol is required"
+
+    (not (#{"BUY" "SELL"} (:action order-req)))
+    "Action must be BUY or SELL"
+
+    (not (#{"MKT" "LMT"} (:order-type order-req)))
+    "Order type must be MKT or LMT"
+
+    (str/blank? (:exchange order-req))
+    "Exchange is required"
+
+    (str/blank? (:currency order-req))
+    "Currency is required"
+
+    (not (#{"DAY" "GTC"} (:tif order-req)))
+    "Time in force must be DAY or GTC"
+
+    (nil? (:quantity order-req))
+    "Quantity must be a whole number greater than 0"
+
+    (<= (:quantity order-req) 0)
+    "Quantity must be a whole number greater than 0"
+
+    (and (= "LMT" (:order-type order-req))
+         (or (nil? (:limit-price order-req))
+             (<= (:limit-price order-req) 0)))
+    "Limit price must be greater than 0 for LMT orders"
+
+    (and (not= "LMT" (:order-type order-req))
+         (contains? order-req :limit-price))
+    "Limit price is only allowed for LMT orders"
+
+    :else
+    (try
+      (validated ::specs/ib-order-request order-req "IB order request")
+      nil
+      (catch Exception _
+        "Invalid order request"))))
 
 (defn login-page [error-msg]
   (html5
@@ -513,75 +617,101 @@
                          :message (str (class t) ": " (.getMessage t))}))))
 
 (defn- ib-place-order-handler [request]
-  (let [symbol      (or (get-in request [:params :symbol]) "AAPL")
-        exchange    (or (get-in request [:params :exchange]) "SMART")
-        currency    (or (get-in request [:params :currency]) "USD")
-        action      (some-> (or (get-in request [:params :action]) "BUY") str/upper-case)
-        order-type  (-> (or (get-in request [:params :order-type]) "MKT") str/upper-case)
-        quantity    (parse-long-param (get-in request [:params :quantity]) "1")
-        limit-price (parse-double-param (get-in request [:params :limit-price]))
-        normalized-limit-price (when (= "LMT" order-type) limit-price)
-        conn        (ib-conn)]
+  (let [order-req (normalize-order-request (:params request))
+        conn      (ib-conn)
+        validation-error (validate-order-request order-req)]
     (cond
-      (str/blank? symbol)
-      (ib-json-response {:ok false :message "Symbol is required"})
-
-      (not (#{"BUY" "SELL"} action))
-      (ib-json-response {:ok false :message "Action must be BUY or SELL"})
-
-      (not (#{"MKT" "LMT"} order-type))
-      (ib-json-response {:ok false :message "Order type must be MKT or LMT"})
-
-      (<= quantity 0)
-      (ib-json-response {:ok false :message "Quantity must be greater than 0"})
-
-      (and (= "LMT" order-type)
-           (or (nil? normalized-limit-price)
-               (<= normalized-limit-price 0)))
-      (ib-json-response {:ok false :message "Limit price must be greater than 0 for LMT orders"})
+      validation-error
+      (let [message validation-error]
+        (set-order-submission! (assoc (submission-base order-req)
+                                      :status "error"
+                                      :message message))
+        (ib-json-response (error-response message)))
 
       (not conn)
-      (ib-json-response {:ok false :message "Not connected to IB"})
+      (do
+        (set-order-submission! (assoc (submission-base order-req)
+                                      :status "error"
+                                      :message "Not connected to IB"))
+        (ib-json-response (error-response "Not connected to IB")))
+
       :else
       (try
+        (set-orders-state! "loading" "Submitting order and refreshing open orders...")
+        (set-order-submission! (assoc (submission-base order-req)
+                                      :status "pending"
+                                      :message "Submitting order..."))
         (let [cd-result (async/<!! (ib.contract/contract-details-snapshot!
                                      conn
-                                     {:symbol symbol
-                                      :exchange exchange
-                                      :currency currency}
+                                     {:symbol (:symbol order-req)
+                                      :exchange (:exchange order-req)
+                                      :currency (:currency order-req)}
                                      {:timeout-ms (ib-snapshot-timeout-ms)}))]
           (if-not (:ok cd-result)
-            (ib-json-response cd-result)
+            (let [message (or (:message cd-result)
+                              (some-> (:error cd-result) str)
+                              "Contract lookup failed")]
+              (set-order-submission! (assoc (submission-base order-req)
+                                            :status "error"
+                                            :message message))
+              (set-orders-state! "error" message)
+              (ib-json-response (assoc (error-response message)
+                                       :error (:error cd-result))))
             (let [contract (-> cd-result :contracts first :contract)]
               (if-not contract
-                (ib-json-response {:ok false :error :no-results :symbol symbol})
+                (let [message (str "No IB contract match found for " (:symbol order-req))]
+                  (set-order-submission! (assoc (submission-base order-req)
+                                                :status "error"
+                                                :message message))
+                  (set-orders-state! "error" message)
+                  (ib-json-response {:ok false
+                                     :error :no-results
+                                     :symbol (:symbol order-req)
+                                     :message message}))
                 (let [con-id (:conId contract)
                       primary-exch (or (:primaryExch contract) (:exchange contract))
                       order-id (ib.client/place-order!
                                 conn
-                                {:contract {:symbol symbol
+                                {:contract {:symbol (:symbol order-req)
                                             :sec-type "STK"
-                                            :exchange "SMART"
+                                            :exchange (:exchange order-req)
                                             :primary-exch primary-exch
-                                            :currency currency
+                                            :currency (:currency order-req)
                                             :con-id con-id}
-                                 :order {:action action
-                                         :order-type order-type
-                                         :total-quantity quantity
-                                         :lmt-price normalized-limit-price
+                                 :order {:action (:action order-req)
+                                         :order-type (:order-type order-req)
+                                         :total-quantity (:quantity order-req)
+                                         :lmt-price (:limit-price order-req)
+                                         :tif (:tif order-req)
+                                         :outside-rth (:outside-rth order-req)
                                          :transmit true}})
                       orders-result (refresh-open-orders! conn :all)]
+                  (set-order-submission!
+                   (assoc (submission-base order-req)
+                          :status "success"
+                          :message (if (:ok orders-result)
+                                     "Order submitted and open orders refreshed."
+                                     "Order submitted, but open orders could not be refreshed immediately.")
+                          :order-id order-id
+                          :refresh-ok (boolean (:ok orders-result))))
                   (ib-json-response {:ok true
                                      :order-id order-id
-                                     :symbol symbol
-                                     :action action
-                                     :quantity quantity
-                                     :order-type order-type
-                                     :limit-price normalized-limit-price
+                                     :symbol (:symbol order-req)
+                                     :action (:action order-req)
+                                     :quantity (:quantity order-req)
+                                     :order-type (:order-type order-req)
+                                     :limit-price (:limit-price order-req)
+                                     :tif (:tif order-req)
+                                     :outside-rth (:outside-rth order-req)
                                      :con-id con-id
                                      :orders-refresh-ok (:ok orders-result)}))))))
         (catch Exception e
-          (ib-json-response {:ok false :message (.getMessage e)}))))))
+          (let [message (or (.getMessage e) "Order submission failed")]
+            (set-order-submission! (assoc (submission-base order-req)
+                                          :status "error"
+                                          :message message))
+            (set-orders-state! "error" message)
+            (ib-json-response (error-response message))))))))
 
 (defonce ^:private acct-summary-req-id (atom 700000))
 

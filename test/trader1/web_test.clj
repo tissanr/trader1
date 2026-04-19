@@ -243,6 +243,8 @@
                   :quantity 1
                   :order-type "LMT"
                   :limit-price 400.0
+                  :tif "DAY"
+                  :outside-rth false
                   :con-id 265598
                   :orders-refresh-ok true}
                  body))
@@ -256,9 +258,24 @@
                           :order-type "LMT"
                           :total-quantity 1
                           :lmt-price 400.0
+                          :tif "DAY"
+                          :outside-rth false
                           :transmit true}}
                  @placed-order))
-          (is (= :all @refresh-call)))))))
+          (is (= :all @refresh-call))
+          (is (= {:status "success"
+                  :symbol "AAPL"
+                  :action "SELL"
+                  :quantity 1
+                  :order-type "LMT"
+                  :limit-price 400.0
+                  :tif "DAY"
+                  :outside-rth false
+                  :message "Order submitted and open orders refreshed."
+                  :order-id 12345
+                  :refresh-ok true
+                  :submitted-at (get-in @web/ui-state [:order-submission :submitted-at])}
+                 (:order-submission @web/ui-state))))))))
 
 (deftest ib-place-order-validation-test
   (testing "rejects limit orders without a positive limit price"
@@ -281,7 +298,51 @@
             body (json/parse-string (:body resp) true)]
         (is (= {:ok false
                 :message "Order type must be MKT or LMT"}
-               body))))))
+               body)))))
+  (testing "rejects non-integer share quantities"
+    (with-redefs [web/ib-conn (fn [] :fake-conn)]
+      (let [resp (#'web/ib-place-order-handler {:params {:symbol "AAPL"
+                                                         :action "BUY"
+                                                         :quantity "1.5"
+                                                         :order-type "MKT"}})
+            body (json/parse-string (:body resp) true)]
+        (is (= {:ok false
+                :message "Quantity must be a whole number greater than 0"}
+               body)))))
+  (testing "supports DAY/GTC and outside-rth on limit orders"
+    (let [placed-order (atom nil)]
+      (with-redefs [web/ib-conn (fn [] :fake-conn)
+                    web/ib-snapshot-timeout-ms (fn [] 5000)
+                    ib.contract/contract-details-snapshot!
+                    (fn [_ _ _]
+                      (let [ch (async/chan 1)]
+                        (async/>!! ch {:ok true
+                                       :contracts [{:contract {:symbol "AAPL"
+                                                               :conId 265598
+                                                               :secType "STK"
+                                                               :exchange "SMART"
+                                                               :primaryExch "NASDAQ"
+                                                               :currency "USD"}}]})
+                        (async/close! ch)
+                        ch))
+                    ib.client/place-order!
+                    (fn [_ payload]
+                      (reset! placed-order payload)
+                      12345)
+                    web/refresh-open-orders!
+                    (fn [_ _]
+                      {:ok true :rows []})]
+        (#'web/ib-place-order-handler {:params {:symbol "AAPL"
+                                                :exchange "SMART"
+                                                :currency "USD"
+                                                :action "BUY"
+                                                :quantity "2"
+                                                :order-type "LMT"
+                                                :limit-price "250"
+                                                :tif "GTC"
+                                                :outside-rth "true"}})
+        (is (= "GTC" (get-in @placed-order [:order :tif])))
+        (is (= true (get-in @placed-order [:order :outside-rth])))))))
 
 (deftest remember-open-order-test
   (testing "live open-order events immediately update the orders table state"

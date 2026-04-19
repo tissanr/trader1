@@ -10,6 +10,7 @@
            :positions               []
            :orders                  []
            :orders-state            {:status "idle"}
+           :order-submission        {:status "idle"}
            :connection-status       "disconnected"
            :errors                  {}
            :ib-log                  []
@@ -54,6 +55,9 @@
 
     "orders-state"
     (swap! app-state assoc :orders-state data)
+
+    "order-submission"
+    (swap! app-state assoc :order-submission data)
 
     "cell-error"
     (swap! app-state assoc-in [:errors (keyword (:cell data))] (:message data))

@@ -14,20 +14,15 @@
            :action "BUY"
            :order-type "MKT"
            :quantity "1"
-           :limit-price ""}))
-
-(defonce order-feedback
-  (r/atom {:status nil
-           :message nil}))
+           :limit-price ""
+           :tif "DAY"
+           :outside-rth false}))
 
 (defn- pretty-json [value]
   (js/JSON.stringify (clj->js value) nil 2))
 
 (defn- set-debug-output! [value]
   (swap! app-state assoc :ib-debug-output (pretty-json value)))
-
-(defn- set-order-feedback! [status message]
-  (reset! order-feedback {:status status :message message}))
 
 (defn- request-url [path params]
   (let [query (->> params
@@ -55,7 +50,8 @@
                    (on-success data)))))
       (.catch (fn [err]
                 (swap! app-state assoc :ib-debug-output (str "Error: " err))
-                (set-order-feedback! :error (str err))))))
+                (swap! app-state assoc :order-submission {:status "error"
+                                                          :message (str err)})))))
 
 (defn- ib-post! [action]
   (submit-request! action nil nil))
@@ -66,7 +62,8 @@
 (defn- update-order-form! [k value]
   (swap! order-form assoc k value)
   (when (and (= k :order-type) (= value "MKT"))
-    (swap! order-form assoc :limit-price "")))
+    (swap! order-form assoc :limit-price ""
+           :outside-rth false)))
 
 (defn- normalized-order-params []
   {:symbol (some-> (:symbol @order-form) str/upper-case str/trim)
@@ -75,6 +72,8 @@
    :quantity (str/trim (or (:quantity @order-form) ""))
    :limit-price (when (limit-order?)
                   (str/trim (or (:limit-price @order-form) "")))
+   :tif (:tif @order-form)
+   :outside-rth (boolean (:outside-rth @order-form))
    :exchange "SMART"
    :currency "USD"})
 
@@ -83,56 +82,82 @@
     (str/blank? (:symbol params)) "Symbol is required"
     (not (#{"BUY" "SELL"} (:action params))) "Action must be BUY or SELL"
     (not (#{"MKT" "LMT"} (:order-type params))) "Order type must be MKT or LMT"
+    (not (#{"DAY" "GTC"} (:tif params))) "Time in force must be DAY or GTC"
     (or (str/blank? (:quantity params))
         (js/isNaN (js/Number (:quantity params)))
-        (<= (js/Number (:quantity params)) 0)) "Quantity must be greater than 0"
+        (<= (js/Number (:quantity params)) 0)
+        (not (js/Number.isInteger (js/Number (:quantity params))))) "Quantity must be a whole number greater than 0"
     (and (= "LMT" (:order-type params))
          (or (str/blank? (:limit-price params))
              (js/isNaN (js/Number (:limit-price params)))
              (<= (js/Number (:limit-price params)) 0))) "Limit price must be greater than 0"
+    (and (:outside-rth params) (not= "LMT" (:order-type params))) "Outside regular hours is only supported for limit orders"
     :else nil))
+
+(defn- set-client-order-error! [message]
+  (swap! app-state assoc :order-submission {:status "error"
+                                            :message message}))
+
+(defn- format-order-summary [{:keys [action quantity symbol order-type limit-price tif outside-rth]}]
+  (str action " "
+       quantity " "
+       symbol
+       (when (= "LMT" order-type)
+         (str " @ " limit-price))
+       " "
+       order-type
+       " / "
+       tif
+       (when outside-rth
+         " / Outside RTH")))
 
 (defn- submit-order! []
   (let [params (normalized-order-params)]
     (if-let [error (client-order-error params)]
-      (set-order-feedback! :error error)
+      (set-client-order-error! error)
       (do
-        (set-order-feedback! :pending "Submitting order…")
+        (swap! app-state assoc :order-submission {:status "pending"
+                                                  :message "Submitting order..."})
         (submit-request! "/ib/order" params
-                         (fn [response]
-                           (if (:ok response)
-                             (set-order-feedback!
-                              :success
-                              (str (:action response) " "
-                                   (:quantity response) " "
-                                   (:symbol response)
-                                   (when (= "LMT" (:order-type response))
-                                     (str " @ " (:limit-price response)))
-                                   " submitted"))
-                             (set-order-feedback!
-                              :error
-                              (or (:message response)
-                                  (:error response)
-                                  "Order submission failed")))))))))
+                         (fn [_response] nil))))))
 
 (defn order-panel []
   (let [positions (:positions @app-state)
-        {:keys [status message]} @order-feedback
+        {:keys [status message order-id submitted-at refresh-ok]} (:order-submission @app-state)
+        connection-status (:connection-status @app-state)
         symbols (->> positions
                      (map :symbol)
                      (remove str/blank?)
                      distinct
                      sort
-                     vec)]
+                     vec)
+        form-params (normalized-order-params)
+        form-error (client-order-error form-params)
+        submit-disabled? (or (= "pending" status)
+                             (= "disconnected" connection-status)
+                             (some? form-error))]
     [:section#ib-order-panel
      [:h2 "IB Order Panel"]
-     [:p.ib-order-help "Submit a minimal IB stock order from the portfolio area. Supported: BUY/SELL, MKT/LMT, SMART/USD."]
+     [:p.ib-order-help "Submit IB stock orders with immediate broker validation and open-order reconciliation. Supported: BUY/SELL, MKT/LMT, SMART/USD, DAY/GTC."]
      (when message
        [:p {:class (case status
-                     :success "cell-info"
-                     :pending "cell-info"
+                     "success" "cell-info"
+                     "pending" "cell-info"
                      "cell-error")}
         message])
+     [:div.ib-order-summary
+      [:span.ib-panel-label "Order Summary"]
+      [:p (format-order-summary form-params)]
+      (when form-error
+        [:p.cell-error form-error])
+      (when order-id
+        [:p.cell-info (str "Last IB order id: " order-id)])
+      (when submitted-at
+        [:p.ib-order-meta
+         (str "Last submission: "
+              (.toLocaleTimeString (js/Date. submitted-at) "en-US" #js {:hour12 false})
+              (when (false? refresh-ok)
+                " / orders refresh needs retry"))])]
      [:div.ib-order-form
       [:label
        [:span "Symbol"]
@@ -160,6 +185,12 @@
                 :value (:quantity @order-form)
                 :on-change #(update-order-form! :quantity (.. % -target -value))}]]
       [:label
+       [:span "Time In Force"]
+       [:select {:value (:tif @order-form)
+                 :on-change #(update-order-form! :tif (.. % -target -value))}
+        [:option {:value "DAY"} "DAY"]
+        [:option {:value "GTC"} "GTC"]]]
+      [:label
        [:span "Limit Price"]
        [:input {:type "number"
                 :min "0"
@@ -167,13 +198,20 @@
                 :disabled (not (limit-order?))
                 :placeholder (if (limit-order?) "e.g. 400.00" "Only for LMT")
                 :value (:limit-price @order-form)
-                :on-change #(update-order-form! :limit-price (.. % -target -value))}]]]
+                :on-change #(update-order-form! :limit-price (.. % -target -value))}]]
+      [:label.ib-order-checkbox
+       [:span "Outside RTH"]
+       [:input {:type "checkbox"
+                :disabled (not (limit-order?))
+                :checked (boolean (:outside-rth @order-form))
+                :on-change #(swap! order-form assoc :outside-rth (.. % -target -checked))}]]]
      [:datalist#ib-order-symbols
       (for [symbol symbols]
         ^{:key symbol}
         [:option {:value symbol}])]
      [:div.ib-order-actions
       [:button.ib-btn {:type "button"
+                       :disabled submit-disabled?
                        :on-click submit-order!}
        "Submit Order"]
       [:button.ib-btn {:type "button"
