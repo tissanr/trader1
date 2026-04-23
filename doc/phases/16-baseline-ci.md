@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned
+In progress
 
 ## Goal
 
@@ -14,10 +14,10 @@ The repo now has enough backend, frontend, and vendor-wrapper integration work t
 
 ## Scope
 
-- [ ] Replace the current minimal GitHub Actions workflow with a CI workflow that matches the real project commands
-- [ ] Run backend tests and frontend compilation in CI
-- [ ] Ensure CI checks out `vendor/ib-cl-wrap` correctly
-- [ ] Add baseline workflow hardening such as explicit permissions and concurrency cancellation
+- [x] Replace the current minimal GitHub Actions workflow with a CI workflow that matches the real project commands
+- [x] Run backend tests and frontend compilation in CI
+- [x] Ensure CI checks out `vendor/ib-cl-wrap` correctly
+- [x] Add baseline workflow hardening such as explicit permissions and concurrency cancellation
 
 ## Out Of Scope
 
@@ -35,22 +35,23 @@ The repo now has enough backend, frontend, and vendor-wrapper integration work t
 
 ## Tasks
 
-- [ ] Audit the current workflow against the real repo commands
-- [ ] Define the supported CI runtime versions for Java and Node
-- [ ] Add a workflow that checks out submodules recursively
-- [ ] Run `npm ci`, `lein deps`, `npx shadow-cljs compile app`, and `lein test`
-- [ ] Add dependency caches where they reduce CI time without hiding failures
-- [ ] Add concurrency cancellation so stale runs do not pile up
+- [x] Audit the current workflow against the real repo commands
+- [x] Define the supported CI runtime versions for Java and Node
+- [x] Add a workflow that checks out submodules recursively
+- [x] Run `npm ci`, `lein deps`, `npx shadow-cljs compile app`, and `lein test`
+- [x] Add dependency caches where they reduce CI time without hiding failures
+- [x] Add concurrency cancellation so stale runs do not pile up
 - [ ] Verify the workflow on pull requests and protected-branch pushes
 
 ## Acceptance Criteria
 
 - [ ] Every pull request gets a consistent backend and frontend validation run
-- [ ] CI uses the same core commands documented for local development
-- [ ] Submodule-dependent builds do not fail because `vendor/ib-cl-wrap` was skipped
-- [ ] Stale workflow runs are cancelled automatically when superseded
+- [x] CI uses the same core commands documented for local development
+- [x] Submodule-dependent builds do not fail because `vendor/ib-cl-wrap` was skipped
+- [x] Stale workflow runs are cancelled automatically when superseded
 
 ## Notes
 
 - This phase should stay narrow: correctness first, speed second.
 - CI should validate the repo as it exists today, not an idealized future packaging model.
+- Local validation is complete, but the phase remains in progress until the new workflow has run successfully on GitHub for both a pull request and a `main` push.
