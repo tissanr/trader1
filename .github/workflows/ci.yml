@@ -28,7 +28,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: maven
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -40,6 +39,16 @@ jobs:
         uses: DeLaGuardo/setup-clojure@13.2
         with:
           lein: latest
+
+      - name: Cache Leiningen dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.lein
+          key: ${{ runner.os }}-lein-${{ hashFiles('project.clj') }}
+          restore-keys: |
+            ${{ runner.os }}-lein-
 
       - name: Install frontend dependencies
         run: npm ci
