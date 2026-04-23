@@ -12,6 +12,7 @@
     "positions"
     "orders"
     "orders-state"
+    "order-submission"
     "cell-error"
     "ib-error"})
 
@@ -81,6 +82,7 @@
 (s/def ::order-count nat-int?)
 (s/def ::updated-at nat-int?)
 (s/def ::connection-status #{"connected" "disconnected"})
+(s/def ::order-submission-status #{"idle" "pending" "success" "error"})
 (s/def ::orders-state-data
   (s/and
    (s/keys :opt-un [::message ::order-count ::updated-at])
@@ -114,6 +116,32 @@
 (s/def ::cell-error-data (s/keys :req-un [::cell ::message]))
 (s/def ::ib-error-data (s/keys :req-un [::message]))
 
+(s/def ::submitted-at nat-int?)
+(s/def ::refresh-ok boolean?)
+(s/def ::tif #{"DAY" "GTC"})
+(s/def ::outside-rth boolean?)
+(s/def ::order-submission-data
+  (s/and
+   (s/keys :opt-un [::message ::order-id ::symbol ::action ::quantity
+                    ::order-type ::limit-price ::submitted-at ::refresh-ok
+                    ::tif ::outside-rth])
+   #(contains? % :status)
+   #(s/valid? ::order-submission-status (:status %))))
+
+(s/def ::exchange non-blank-string?)
+(s/def ::ib-order-request
+  (s/and
+   (s/keys :req-un [::symbol ::action ::order-type ::quantity
+                    ::exchange ::currency ::tif ::outside-rth]
+           :opt-un [::limit-price])
+   #(pos-int? (:quantity %))
+   #(or (not (contains? % :limit-price))
+        (and (number? (:limit-price %))
+             (pos? (:limit-price %))))
+   #(if (= "LMT" (:order-type %))
+      (contains? % :limit-price)
+      (not (contains? % :limit-price)))))
+
 (defmulti websocket-message-type :type)
 
 (defmethod websocket-message-type "connection" [_]
@@ -141,6 +169,9 @@
   (s/keys :req-un [::type ::data]))
 
 (defmethod websocket-message-type "orders-state" [_]
+  (s/keys :req-un [::type ::data]))
+
+(defmethod websocket-message-type "order-submission" [_]
   (s/keys :req-un [::type ::data]))
 
 (defmethod websocket-message-type "cell-error" [_]
@@ -183,6 +214,7 @@
                        "positions" ::positions
                        "orders" ::orders
                        "orders-state" ::orders-state-data
+                       "order-submission" ::order-submission-data
                        "cell-error" ::cell-error-data
                        "ib-error" ::ib-error-data)]
     (assert-valid! payload-spec (:data value') (str "websocket payload for " (:type value')))
