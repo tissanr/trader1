@@ -91,23 +91,30 @@
 (def ^:private base-req {:params {} :session {} :headers {}})
 
 (deftest app-routes-test
-  (testing "GET / redirects to /dashboard"
-    (let [resp (app-routes (assoc base-req :request-method :get :uri "/"))]
-      (is (= 302 (:status resp)))
-      (is (= "/dashboard" (get-in resp [:headers "Location"])))))
-  (testing "GET /dashboard without auth redirects to /login"
-    (let [resp (app-routes (assoc base-req :request-method :get :uri "/dashboard"))]
-      (is (= 302 (:status resp)))
-      (is (= "/login" (get-in resp [:headers "Location"])))))
-  (testing "GET /dashboard with auth returns dashboard page"
-    (let [resp (app-routes (assoc base-req :request-method :get :uri "/dashboard"
-                                  :session {:identity "admin"}))]
-      (is (= 200 (:status resp)))
-      (is (.contains (:body resp) "<div id=\"app\"></div>"))
-      (is (.contains (:body resp) "/js/main.js"))))
-  (testing "POST /settings without auth returns 401"
-    (let [resp (app-routes (assoc base-req :request-method :post :uri "/settings"))]
-      (is (= 401 (:status resp))))))
+  (with-redefs [auth/needs-setup? (fn [] true)]
+    (testing "unconfigured app redirects browser routes to /setup"
+      (doseq [uri ["/" "/login" "/dashboard" "/settings"]]
+        (let [resp (app-routes (assoc base-req :request-method :get :uri uri))]
+          (is (= 302 (:status resp)))
+          (is (= "/setup" (get-in resp [:headers "Location"])))))
+      (let [resp (app-routes (assoc base-req :request-method :post :uri "/settings"))]
+        (is (= 302 (:status resp)))
+        (is (= "/setup" (get-in resp [:headers "Location"]))))))
+  (with-redefs [auth/needs-setup? (fn [] false)]
+    (testing "configured app preserves the normal login and dashboard flow"
+      (let [root-resp (app-routes (assoc base-req :request-method :get :uri "/"))
+            guest-resp (app-routes (assoc base-req :request-method :get :uri "/dashboard"))
+            authed-resp (app-routes (assoc base-req :request-method :get :uri "/dashboard"
+                                           :session {:identity "admin"}))
+            settings-resp (app-routes (assoc base-req :request-method :post :uri "/settings"))]
+        (is (= 302 (:status root-resp)))
+        (is (= "/dashboard" (get-in root-resp [:headers "Location"])))
+        (is (= 302 (:status guest-resp)))
+        (is (= "/login" (get-in guest-resp [:headers "Location"])))
+        (is (= 200 (:status authed-resp)))
+        (is (.contains (:body authed-resp) "<div id=\"app\"></div>"))
+        (is (.contains (:body authed-resp) "/js/main.js"))
+        (is (= 401 (:status settings-resp)))))))
 
 (deftest broadcast-test
   (testing "sends JSON-encoded payload to all connected channels"
