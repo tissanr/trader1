@@ -17,13 +17,13 @@ Detailed scope, tasks, and acceptance criteria live in [`doc/phases/`](./phases/
 - Phase 03: IB open orders improvements - done
 - Phase 04: IB order submission - done
 - Phase 16: Baseline CI - in progress
+- Phase 17: Security gates - in progress
 
 ## Next
-- Phase 17: Security gates - planned
+- Phase 18: CI visibility and reliability - planned
 
 ## Later
 
-- Phase 18: CI visibility and reliability - planned
 - Phase 19: Staging CD - planned
 - Phase 20: Production CD and hardening - planned
 - Phase 21: Advanced quality and supply chain - planned

@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned
+In progress
 
 ## Goal
 
@@ -14,8 +14,8 @@ Once baseline CI exists, the next highest-value guardrail is preventing dependen
 
 ## Scope
 
-- [ ] Add pull-request dependency review
-- [ ] Add code scanning where GitHub-native tooling is useful for this repo
+- [x] Add pull-request dependency review
+- [x] Add code scanning where GitHub-native tooling is useful for this repo
 - [ ] Enable repository security features that should block obvious mistakes
 - [ ] Make the new checks enforceable through branch protection or rulesets
 
@@ -35,18 +35,18 @@ Once baseline CI exists, the next highest-value guardrail is preventing dependen
 
 ## Tasks
 
-- [ ] Add a dependency review workflow for pull requests
-- [ ] Add code scanning for supported languages and workflow files
+- [x] Add a dependency review workflow for pull requests
+- [x] Add code scanning for supported languages and workflow files
 - [ ] Enable Dependabot alerts and security updates
 - [ ] Enable secret scanning and push protection where available
-- [ ] Reduce workflow token permissions to the minimum needed
-- [ ] Define which checks must pass before merge
+- [x] Reduce workflow token permissions to the minimum needed
+- [x] Define which checks must pass before merge
 - [ ] Verify the new checks fail cleanly on introduced sample issues
 
 ## Acceptance Criteria
 
-- [ ] Vulnerable dependency changes are visible and can block merge
-- [ ] Supported code and workflow surfaces are scanned automatically
+- [x] Vulnerable dependency changes are visible and can block merge
+- [x] Supported code and workflow surfaces are scanned automatically
 - [ ] Repository security settings are enabled for common leak and supply-chain risks
 - [ ] Protected branches require the new security checks to pass
 
@@ -54,3 +54,4 @@ Once baseline CI exists, the next highest-value guardrail is preventing dependen
 
 - GitHub-native code scanning is still useful here, but it will not replace Clojure-specific review discipline.
 - Prefer checks that are understandable and actionable over noisy scanners that get ignored.
+- Repository-admin GitHub settings are documented in `doc/security-gates.md`; they remain pending because the current workspace does not have valid GitHub authentication.
