@@ -288,6 +288,10 @@
 (defn- error-response [message]
   {:ok false :message message})
 
+(defn- event-request-id [event]
+  (or (:request-id event)
+      (:req-id event)))
+
 (defn- normalize-order-request [params]
   (let [symbol      (some-> (or (:symbol params) "") str/trim str/upper-case)
         action      (some-> (or (:action params) "BUY") str/trim str/upper-case)
@@ -734,11 +738,11 @@
                 (ib-json-response {:ok false :error "stream-closed" :rows rows})
 
                 (and (= :ib/account-summary-end (:type val))
-                     (= rid (:req-id val)))
+                     (= rid (event-request-id val)))
                 (ib-json-response {:ok true :rows rows})
 
                 (and (= :ib/account-summary (:type val))
-                     (= rid (:req-id val)))
+                     (= rid (event-request-id val)))
                 (recur (conj rows {:account  (:account val)
                                    :tag      (:tag val)
                                    :value    (:value val)

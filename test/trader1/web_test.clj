@@ -344,6 +344,45 @@
         (is (= "GTC" (get-in @placed-order [:order :tif])))
         (is (= true (get-in @placed-order [:order :outside-rth])))))))
 
+(deftest ib-account-summary-handler-request-id-test
+  (testing "prefers normalized :request-id when correlating account summary events"
+    (let [sub-ch (async/chan 4)
+          request-call (atom nil)
+          cancel-call (atom nil)
+          unsubscribed? (atom false)]
+      (async/>!! sub-ch {:type :ib/account-summary
+                         :request-id 700001
+                         :account "DU123"
+                         :tag "NetLiquidation"
+                         :value "12345.67"
+                         :currency "USD"})
+      (async/>!! sub-ch {:type :ib/account-summary-end
+                         :request-id 700001})
+      (with-redefs [web/ib-conn (fn [] :fake-conn)
+                    ib.client/subscribe-events! (fn [_ _] sub-ch)
+                    ib.client/req-account-summary! (fn [_ payload] (reset! request-call payload))
+                    ib.client/cancel-account-summary! (fn [_ rid] (reset! cancel-call rid))
+                    ib.client/unsubscribe-events! (fn [_ ch]
+                                                   (reset! unsubscribed? (= ch sub-ch)))]
+        (let [resp (#'web/ib-account-summary-handler {})
+              body (json/parse-string (:body resp) true)]
+          (is (= 200 (:status resp)))
+          (is (= {:ok true
+                  :rows [{:account "DU123"
+                          :tag "NetLiquidation"
+                          :value "12345.67"
+                          :currency "USD"}]}
+                 body))
+          (is (= {:req-id 700001} @request-call))
+          (is (= 700001 @cancel-call))
+          (is (true? @unsubscribed?)))))))
+
+(deftest event-request-id-test
+  (testing "prefers :request-id and falls back to legacy :req-id"
+    (is (= 42 (#'web/event-request-id {:request-id 42 :req-id 11})))
+    (is (= 11 (#'web/event-request-id {:req-id 11})))
+    (is (nil? (#'web/event-request-id {:type :ib/account-summary})))))
+
 (deftest remember-open-order-test
   (testing "live open-order events immediately update the orders table state"
     (reset! web/last-order-status
