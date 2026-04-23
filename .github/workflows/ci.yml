@@ -37,7 +37,7 @@ jobs:
           cache: npm
 
       - name: Set up Clojure tooling
-        uses: DeLaGuardo/setup-clojure@13.2
+        uses: DeLaGuardo/setup-clojure@13.5
         with:
           lein: latest
 
